@@ -25,8 +25,15 @@ export interface CampaignThemePack {
     line: string;
   };
   fonts: {
+    /** Always the loaded app face — never Impact/Arial Black (unreadable + slow to match). */
     display: string;
     body: string;
+  };
+  /** Optional headline styling keyed off the theme, without swapping font files. */
+  displayStyle?: {
+    weight?: number;
+    letterSpacing?: string;
+    textTransform?: "none" | "uppercase";
   };
 }
 
@@ -49,9 +56,10 @@ export const THEME_PACKS: Record<ThemeKey, CampaignThemePack> = {
       line: "#c9d5ce",
     },
     fonts: {
-      display: '"Iowan Old Style", Palatino, Georgia, serif',
-      body: '"Segoe UI", "Helvetica Neue", Arial, sans-serif',
+      display: 'var(--font-grotesk), "Segoe UI", sans-serif',
+      body: 'var(--font-grotesk), "Segoe UI", sans-serif',
     },
+    displayStyle: { weight: 600, letterSpacing: "-0.02em" },
   },
   spirit_week: {
     key: "spirit_week",
@@ -71,9 +79,10 @@ export const THEME_PACKS: Record<ThemeKey, CampaignThemePack> = {
       line: "#e8c9b0",
     },
     fonts: {
-      display: "Impact, Haettenschweiler, Arial Narrow Bold, sans-serif",
-      body: '"Trebuchet MS", "Segoe UI", sans-serif',
+      display: 'var(--font-grotesk), "Segoe UI", sans-serif',
+      body: 'var(--font-grotesk), "Segoe UI", sans-serif',
     },
+    displayStyle: { weight: 700, letterSpacing: "-0.03em" },
   },
   spring_classic: {
     key: "spring_classic",
@@ -93,9 +102,10 @@ export const THEME_PACKS: Record<ThemeKey, CampaignThemePack> = {
       line: "#c5d9b8",
     },
     fonts: {
-      display: '"Georgia", "Times New Roman", serif',
-      body: "Verdana, Geneva, sans-serif",
+      display: 'var(--font-grotesk), "Segoe UI", sans-serif',
+      body: 'var(--font-grotesk), "Segoe UI", sans-serif',
     },
+    displayStyle: { weight: 600, letterSpacing: "-0.02em" },
   },
   championship_push: {
     key: "championship_push",
@@ -115,9 +125,10 @@ export const THEME_PACKS: Record<ThemeKey, CampaignThemePack> = {
       line: "#b8c4d6",
     },
     fonts: {
-      display: '"Arial Black", "Helvetica Bold", sans-serif',
-      body: "Arial, Helvetica, sans-serif",
+      display: 'var(--font-grotesk), "Segoe UI", sans-serif',
+      body: 'var(--font-grotesk), "Segoe UI", sans-serif',
     },
+    displayStyle: { weight: 700, letterSpacing: "-0.025em", textTransform: "none" },
   },
   night_lights: {
     key: "night_lights",
@@ -137,9 +148,10 @@ export const THEME_PACKS: Record<ThemeKey, CampaignThemePack> = {
       line: "#3a4658",
     },
     fonts: {
-      display: '"Segoe UI Semibold", "Helvetica Neue", sans-serif',
-      body: '"Segoe UI", Tahoma, sans-serif',
+      display: 'var(--font-grotesk), "Segoe UI", sans-serif',
+      body: 'var(--font-grotesk), "Segoe UI", sans-serif',
     },
+    displayStyle: { weight: 600, letterSpacing: "-0.02em" },
   },
   community: {
     key: "community",
@@ -160,8 +172,9 @@ export const THEME_PACKS: Record<ThemeKey, CampaignThemePack> = {
     },
     fonts: {
       display: 'var(--font-grotesk), "Segoe UI", sans-serif',
-      body: '"Segoe UI", "Helvetica Neue", Arial, sans-serif',
+      body: 'var(--font-grotesk), "Segoe UI", sans-serif',
     },
+    displayStyle: { weight: 600, letterSpacing: "-0.02em" },
   },
 };
 

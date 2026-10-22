@@ -62,31 +62,36 @@ export function PublicCampaignPage({
       return;
     }
     const controller = new AbortController();
-    fetch("/api/public/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      signal: controller.signal,
-      body: JSON.stringify({
-        mode: "quote",
-        campaignSlug: campaign.slug,
-        participantSlug: participant?.slug ?? null,
-        operatorId: operator.id,
-        supporterName: "quote",
-        supporterEmail: "quote@quote.local",
-        lines,
-        donationCents,
-      }),
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.quote) setQuote(data.quote);
-        else setQuote(null);
+    const timer = window.setTimeout(() => {
+      fetch("/api/public/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          mode: "quote",
+          campaignSlug: campaign.slug,
+          participantSlug: participant?.slug ?? null,
+          operatorId: operator.id,
+          supporterName: "quote",
+          supporterEmail: "quote@quote.local",
+          lines,
+          donationCents,
+        }),
       })
-      .catch((err: unknown) => {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        setQuote(null);
-      });
-    return () => controller.abort();
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.quote) setQuote(data.quote);
+          else setQuote(null);
+        })
+        .catch((err: unknown) => {
+          if (err instanceof DOMException && err.name === "AbortError") return;
+          setQuote(null);
+        });
+    }, 280);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
   }, [cartEmpty, lines, donationCents, campaign.slug, participant?.slug, operator.id]);
 
   async function pay() {
@@ -145,6 +150,9 @@ export function PublicCampaignPage({
           "--pub-accent-ink": theme.colors.accentInk,
           "--pub-font-body": theme.fonts.body,
           "--pub-font-display": theme.fonts.display,
+          "--pub-display-weight": String(theme.displayStyle?.weight ?? 600),
+          "--pub-display-tracking": theme.displayStyle?.letterSpacing ?? "-0.02em",
+          "--pub-display-transform": theme.displayStyle?.textTransform ?? "none",
           "--operator-primary": operator.primaryColor,
         } as React.CSSProperties
       }

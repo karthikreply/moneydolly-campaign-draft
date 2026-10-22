@@ -364,7 +364,14 @@ export function CampaignAgent({ catalog }: { catalog: CatalogSku[] }) {
               </div>
               <div>
                 <dt>Offers</dt>
-                <dd>{draftSkus.map((sku) => sku.name).join(", ")}</dd>
+                <dd>
+                  {draftSkus.length <= 3
+                    ? draftSkus.map((sku) => sku.name).join(", ")
+                    : `${draftSkus
+                        .slice(0, 3)
+                        .map((sku) => sku.name)
+                        .join(", ")} +${draftSkus.length - 3} more`}
+                </dd>
               </div>
             </dl>
             <p className="agent-card-why">{draft.whyDraft}</p>

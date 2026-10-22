@@ -8,6 +8,8 @@ const grotesk = Schibsted_Grotesk({
   weight: ["500", "600", "700"],
   variable: "--font-grotesk",
   display: "swap",
+  preload: true,
+  adjustFontFallback: true,
 });
 
 const mono = JetBrains_Mono({
@@ -15,6 +17,8 @@ const mono = JetBrains_Mono({
   weight: ["500", "600"],
   variable: "--font-mono",
   display: "swap",
+  preload: true,
+  adjustFontFallback: true,
 });
 
 export const metadata: Metadata = {
@@ -29,7 +33,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${grotesk.variable} ${mono.variable}`}>
-      <body>
+      <body className={grotesk.className}>
         <OperatorProvider>{children}</OperatorProvider>
       </body>
     </html>
