@@ -231,7 +231,7 @@ export function CampaignAgent({ catalog }: { catalog: CatalogSku[] }) {
             <dl className="agent-card-facts">
               <div>
                 <dt>Goal</dt>
-                <dd>{formatCents(draft.goalCents)}</dd>
+                <dd className="money">{formatCents(draft.goalCents)}</dd>
               </div>
               <div>
                 <dt>Roster</dt>

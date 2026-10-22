@@ -80,8 +80,12 @@ export function PublicCampaignPage({
       .then((r) => r.json())
       .then((data) => {
         if (data.quote) setQuote(data.quote);
+        else setQuote(null);
       })
-      .catch(() => undefined);
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setQuote(null);
+      });
     return () => controller.abort();
   }, [cartEmpty, lines, donationCents, campaign.slug, participant?.slug, operator.id]);
 
@@ -182,7 +186,8 @@ export function PublicCampaignPage({
               <span style={{ width: `${pct}%` }} />
             </div>
             <div className="public-progress-meta">
-              <strong>{formatCents(progress.raisedCents)}</strong> raised of {formatCents(progress.goalCents)}
+              <strong>{formatCents(progress.raisedCents)}</strong> raised of{" "}
+              <span className="money">{formatCents(progress.goalCents)}</span>
               {participant ? " personal goal" : " team goal"} · {progress.orderCount} supporter
               {progress.orderCount === 1 ? "" : "s"}
               {endsLabel ? ` · ends ${endsLabel}` : ""}
@@ -258,7 +263,14 @@ export function PublicCampaignPage({
                     aria-label="Other donation amount in dollars"
                     placeholder="Other"
                     value={donationCents > 0 && !DONATION_PRESETS.includes(donationCents) ? donationCents / 100 : ""}
-                    onChange={(e) => setDonationCents(Math.max(0, Math.round(Number(e.target.value || 0) * 100)))}
+                    onChange={(e) => {
+                      const dollars = Number(e.target.value);
+                      setDonationCents(
+                        e.target.value.trim() === "" || !Number.isFinite(dollars)
+                          ? 0
+                          : Math.max(0, Math.round(dollars * 100)),
+                      );
+                    }}
                   />
                 </label>
               </div>
@@ -276,7 +288,7 @@ export function PublicCampaignPage({
               <h2>Thank you{name ? `, ${name.split(" ")[0]}` : ""}!</h2>
               <p>
                 You paid <strong>{formatCents(receipt.totalCents)}</strong>.{" "}
-                <strong>{formatCents(receipt.goalCreditCents)}</strong> counts toward{" "}
+                <strong className="money">{formatCents(receipt.goalCreditCents)}</strong> counts toward{" "}
                 {participant ? `${participant.displayName}'s` : "the team's"} goal.
               </p>
               <p className="public-finePrint">Mock order {receipt.id.slice(0, 8)} · no card was charged.</p>

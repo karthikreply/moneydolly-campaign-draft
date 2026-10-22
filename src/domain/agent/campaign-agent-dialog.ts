@@ -66,6 +66,7 @@ const THEME_ALIASES: Array<[RegExp, string]> = [
   [/champ/i, "championship_push"],
   [/night|lights|evening/i, "night_lights"],
   [/classic|season|standard|normal|simple/i, "classic_season"],
+  [/community|charity|cause|plum|rose/i, "community"],
 ];
 
 export function initialAgentState(): AgentDialogState {
@@ -184,8 +185,8 @@ function question(slot: SlotName, slots: ExtractedSlots): { reply: string; sugge
     case "themePack":
       return {
         reply:
-          "Pick a look: Classic season, Spirit week, Spring classic, Championship push, or Night lights. Or say skip for Classic.",
-        suggestions: ["Spirit week", "Championship push", "Night lights", "Skip"],
+          "Pick a look: Classic season, Spirit week, Spring classic, Championship push, Night lights, or Community. Or say skip for Classic.",
+        suggestions: ["Community", "Spirit week", "Night lights", "Skip"],
       };
   }
 }

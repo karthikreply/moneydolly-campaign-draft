@@ -3,14 +3,30 @@ import { z } from "zod";
 import { feeRateToBps, findOperator } from "@/domain/operators";
 import { getCampaignDraftService } from "@/lib/service";
 
+/** Number inputs can submit NaN, which JSON turns into null. Treat that as zero. */
+const cents = z
+  .union([z.number(), z.null(), z.undefined()])
+  .transform((value) => (typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0));
+
 const schema = z.object({
-  campaignSlug: z.string().min(1),
-  participantSlug: z.string().min(1).nullable(),
-  operatorId: z.string().min(1),
-  supporterName: z.string().min(1),
-  supporterEmail: z.string().min(3),
-  lines: z.array(z.object({ productId: z.string().min(1), qty: z.number().int().min(0) })),
-  donationCents: z.number().int().min(0),
+  campaignSlug: z.string().trim().min(1),
+  participantSlug: z
+    .string()
+    .trim()
+    .min(1)
+    .nullable()
+    .optional()
+    .transform((value) => value ?? null),
+  operatorId: z.string().trim().min(1),
+  supporterName: z.string().trim().min(1),
+  supporterEmail: z.string().trim().min(3),
+  lines: z.array(
+    z.object({
+      productId: z.string().trim().min(1),
+      qty: cents,
+    }),
+  ),
+  donationCents: cents.default(0),
   mode: z.enum(["quote", "pay"]).default("quote"),
 });
 
@@ -21,7 +37,11 @@ const schema = z.object({
 export async function POST(req: Request) {
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid checkout payload" }, { status: 400 });
+    const detail = parsed.error.issues.map((issue) => issue.path.join(".") || "body").join(", ");
+    return NextResponse.json(
+      { error: detail ? `Check ${detail} and try again.` : "Invalid checkout payload" },
+      { status: 400 },
+    );
   }
   const { mode, operatorId, ...input } = parsed.data;
   const bps = feeRateToBps(findOperator(operatorId).customFeeRate);

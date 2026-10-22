@@ -3,7 +3,8 @@ export type ThemeKey =
   | "spirit_week"
   | "spring_classic"
   | "championship_push"
-  | "night_lights";
+  | "night_lights"
+  | "community";
 
 export interface CampaignThemePack {
   key: ThemeKey;
@@ -138,6 +139,28 @@ export const THEME_PACKS: Record<ThemeKey, CampaignThemePack> = {
     fonts: {
       display: '"Segoe UI Semibold", "Helvetica Neue", sans-serif',
       body: '"Segoe UI", Tahoma, sans-serif',
+    },
+  },
+  community: {
+    key: "community",
+    name: "Community",
+    description: "Plum and rose charity page for drives that are not a team sport.",
+    productTags: ["generic", "merch"],
+    copyTone: "warm, neighborly, plain",
+    headlineVerb: "Stand with",
+    colors: {
+      accent: "#8a1848",
+      accentInk: "#ffffff",
+      background: "#fff6f8",
+      backgroundAlt: "#f8e8ef",
+      ink: "#3b1848",
+      muted: "#5c305f",
+      panel: "#ffffff",
+      line: "#8d4a68",
+    },
+    fonts: {
+      display: 'var(--font-grotesk), "Segoe UI", sans-serif',
+      body: '"Segoe UI", "Helvetica Neue", Arial, sans-serif',
     },
   },
 };

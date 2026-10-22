@@ -94,40 +94,25 @@ export function DraftReviewSplit({
 
   return (
     <div>
-      <div
-        style={{
-          display: "flex",
-          gap: "0.75rem",
-          alignItems: "center",
-          marginBottom: "1rem",
-          flexWrap: "wrap",
-        }}
-      >
+      <div className="status-strip">
+        {publishedId ? <span className="badge badge-active">Live</span> : <span className="badge">Draft</span>}
+        <span className="badge">{theme.name}</span>
         <NoteFilterBadge filter={draft.noteFilter} />
-        <span
-          className="badge badge-active"
-          style={{ borderColor: theme.colors.accent, color: theme.colors.accent }}
-        >
-          Theme: {theme.name}
-        </span>
         {defaulted.map((field) => (
           <span key={field} className="badge badge-default">
             {defaultLabels[field] ?? `${field} defaulted`}
           </span>
         ))}
         <span className="badge">Preset v{draft.presetVersion}</span>
-        <span className="badge">Copy: {draft.copyStatus}</span>
-        {publishedId ? (
-          <span className="badge badge-active">Published · {publishedId.slice(0, 8)}</span>
-        ) : null}
+        <span className="badge">Copy {draft.copyStatus}</span>
       </div>
 
       <div className="split">
         <div className="panel">
-          <h2 style={{ marginTop: 0, fontFamily: "var(--font-display)" }}>
-            Edit draft
-          </h2>
-          <p className="muted">
+          <div className="panel-head">
+            <h2>Edit</h2>
+          </div>
+          <p className="muted" style={{ marginBottom: "var(--s-5)" }}>
             {draft.whyRules}
           </p>
 
@@ -156,27 +141,36 @@ export function DraftReviewSplit({
             />
           </div>
 
-          <div className="field">
-            <label htmlFor="goalCents">Goal (cents)</label>
-            <input
-              id="goalCents"
-              type="number"
-              value={draft.goalCents}
-              disabled={draft.status !== "draft"}
-              onChange={(e) =>
-                setDraft({ ...draft, goalCents: Number(e.target.value) })
-              }
-              onBlur={() => void persist({ goalCents: draft.goalCents })}
-            />
-          </div>
-
-          <div className="field">
-            <label>Selected offers</label>
-            <ul className="sku-list">
-              {selectedSkus.map((s) => (
-                <li key={s.id}>{s.name}</li>
-              ))}
-            </ul>
+          <div className="field-row">
+            <div className="field">
+              <label htmlFor="goalDollars">Goal (USD)</label>
+              <input
+                id="goalDollars"
+                type="number"
+                min={0}
+                step={1}
+                className="money"
+                value={Math.round(draft.goalCents / 100)}
+                disabled={draft.status !== "draft"}
+                onChange={(e) =>
+                  setDraft({ ...draft, goalCents: Math.max(0, Math.round(Number(e.target.value) * 100)) })
+                }
+                onBlur={() => void persist({ goalCents: draft.goalCents })}
+              />
+            </div>
+            <div className="field">
+              <span className="label">Offers</span>
+              <ul className="sku-list">
+                {selectedSkus.map((s) => (
+                  <li key={s.id}>
+                    <span>{s.name}</span>
+                    <span className="money muted">
+                      {s.kind === "product" ? `$${(s.retailCents / 100).toFixed(2)}` : "any"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
           <div className="field">
@@ -191,7 +185,11 @@ export function DraftReviewSplit({
             />
           </div>
 
-          {error ? <p className="error">{error}</p> : null}
+          {error ? (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          ) : null}
 
           <PublishBar
             canPublish={canPublish}
@@ -201,49 +199,60 @@ export function DraftReviewSplit({
         </div>
 
         <div className="preview-pair">
-          <SupporterPagePreview
-            draft={draft}
-            catalog={catalog}
-            donationFeeBps={feeRateToBps(operator.customFeeRate)}
-          />
+          <div className="browser" aria-label="Supporter page preview">
+            <div className="browser-bar">
+              <span className="browser-dots" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </span>
+              <span className="browser-url">
+                {published ? `/c/${published.slug}` : "/c/your-campaign"}
+              </span>
+            </div>
+            <SupporterPagePreview
+              draft={draft}
+              catalog={catalog}
+              donationFeeBps={feeRateToBps(operator.customFeeRate)}
+            />
+          </div>
           <ParticipantAppPreview draft={draft} />
         </div>
       </div>
 
       {publishedId && published ? (
         <div className="share-links">
-          <h3>Campaign is live. Share these links.</h3>
-          <p className="muted" style={{ margin: 0 }}>
-            Supporters open these to shop or donate. Fees shown use {operator.operatorName}
-            &apos;s rate; player links credit that player&apos;s personal goal.
+          <span className="eyebrow">Live</span>
+          <h3>Share these links</h3>
+          <p className="muted">
+            Fees shown use {operator.operatorName}&apos;s rate. Player links credit that
+            player&apos;s personal goal.
           </p>
           <ul>
             <li>
-              Team page:{" "}
+              <span>Team page</span>
               <a href={`/c/${published.slug}?op=${operator.id}`} target="_blank" rel="noreferrer">
                 <code>/c/{published.slug}</code>
               </a>
             </li>
             {roster.map((p) => (
               <li key={p.id}>
-                {p.displayName}:{" "}
+                <span>{p.displayName}</span>
                 <a
                   href={`/c/${published.slug}/${p.slug}?op=${operator.id}`}
                   target="_blank"
                   rel="noreferrer"
                 >
-                  <code>
-                    /c/{published.slug}/{p.slug}
-                  </code>
+                  <code>/{p.slug}</code>
                 </a>
               </li>
             ))}
           </ul>
-          <p style={{ marginTop: "0.75rem", marginBottom: 0 }}>
-            <button className="btn btn-secondary" type="button" onClick={() => router.push("/drafts/new")}>
+          <div className="publish-bar">
+            <button className="btn btn-secondary" type="button" onClick={() => router.push("/agent")}>
               Start another
             </button>
-          </p>
+          </div>
         </div>
       ) : null}
     </div>

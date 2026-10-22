@@ -9,25 +9,24 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
         Skip to content
       </a>
       <header className="topbar">
-        <div className="brand-lockup">
+        <Link href="/" className="brand-lockup" style={{ textDecoration: "none", color: "inherit" }}>
           <span className="operator-mark" role="img" aria-label="Operator logo" />
-          <div>
+          <span>
             <p className="brand">
-              Field<span>Fund</span> Draft
+              Field<span>Fund</span>
             </p>
-            <p className="muted" style={{ margin: 0 }}>
-              Director console · rules for numbers · AI for copy
-            </p>
-          </div>
-        </div>
-        <OperatorSwitcher />
-        <nav style={{ display: "flex", gap: "1rem" }}>
-          <Link href="/">Home</Link>
-          <Link href="/agent">Talk to the agent</Link>
-          <Link href="/drafts/new">Form</Link>
+            <p className="brand-sub">Director console</p>
+          </span>
+        </Link>
+        <nav className="studio-nav" aria-label="Primary">
+          <Link href="/agent">Agent</Link>
+          <Link href="/drafts/new">Brief</Link>
         </nav>
+        <OperatorSwitcher />
       </header>
-      <div id="studio-main">{children}</div>
+      <main id="studio-main" className="studio-main">
+        {children}
+      </main>
     </div>
   );
 }

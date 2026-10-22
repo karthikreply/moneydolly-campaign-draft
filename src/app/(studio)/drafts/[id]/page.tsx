@@ -19,13 +19,20 @@ export default async function DraftReviewPage({
   const roster = campaign ? svc.listParticipants(campaign.id) : [];
 
   return (
-    <main>
+    <>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">{campaign ? "Live campaign" : "Draft review"}</span>
+          <h1>{draft.headline || "Untitled campaign"}</h1>
+          <p>Edit on the left. The supporter page and the student app update on the right.</p>
+        </div>
+      </div>
       <DraftReviewSplit
         initialDraft={draft}
         catalog={svc.getCatalog()}
         initialCampaign={campaign}
         initialRoster={roster}
       />
-    </main>
+    </>
   );
 }

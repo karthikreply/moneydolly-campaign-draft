@@ -126,14 +126,14 @@ export function OmniBar({
           disabled={busy}
           onClick={toggleSpeech}
         >
-          {listening ? "Listening" : "Mic"}
+          {listening ? "Listening…" : "Talk"}
         </button>
         <input
           ref={inputRef}
           id="omni"
           aria-label="One-line campaign brief"
           value={text}
-          placeholder="Lincoln volleyball, 18 players, March 1 to April 15, spirit week"
+          placeholder="Say it once: “Lincoln volleyball, 18 players, March 1 to April 15, spirit week”"
           onChange={(event) => {
             const value = event.target.value;
             setText(value);
@@ -153,7 +153,7 @@ export function OmniBar({
           disabled={busy || text.trim().length === 0}
           onClick={() => void submit()}
         >
-          {busy ? "Drafting" : "Draft"}
+          {busy ? "Drafting…" : "Draft it"}
         </button>
       </div>
       {intent ? (

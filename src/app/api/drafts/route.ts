@@ -16,6 +16,7 @@ const briefSchema = z.object({
       "spring_classic",
       "championship_push",
       "night_lights",
+      "community",
     ])
     .default("classic_season"),
   defaultedFields: z.array(z.string()).optional(),

@@ -6,6 +6,7 @@ const THEMES: Array<[RegExp, string]> = [
   [/championship/i, "championship_push"],
   [/night lights/i, "night_lights"],
   [/classic season/i, "classic_season"],
+  [/community|charity|cause/i, "community"],
 ];
 
 const MONTHS: Record<string, number> = {

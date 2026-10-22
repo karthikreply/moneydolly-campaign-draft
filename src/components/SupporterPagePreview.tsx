@@ -25,19 +25,27 @@ export function SupporterPagePreview({
       style={{
         background: `linear-gradient(160deg, ${theme.colors.background} 0%, ${theme.colors.backgroundAlt} 55%, ${theme.colors.background} 100%)`,
         color: theme.colors.ink,
-        borderColor: "var(--operator-primary, " + theme.colors.line + ")",
         fontFamily: theme.fonts.body,
       }}
     >
-      <p style={{ marginTop: 0, color: theme.colors.muted }}>
-        Supporter preview · {theme.name} · not live checkout
+      <p
+        style={{
+          marginTop: 0,
+          color: theme.colors.muted,
+          fontSize: "1rem",
+          fontWeight: 600,
+          letterSpacing: "0.06em",
+          textTransform: "uppercase",
+        }}
+      >
+        {draft.brief.orgDisplayName} · {theme.name}
       </p>
       <h2
         style={{
           fontFamily: theme.fonts.display,
           color: theme.colors.ink,
           margin: "0 0 0.5rem",
-          fontSize: "1.75rem",
+          letterSpacing: "-0.02em",
         }}
       >
         {draft.headline || "Headline required"}
@@ -45,15 +53,17 @@ export function SupporterPagePreview({
       <p style={{ color: theme.colors.ink }}>{draft.supportingLine}</p>
       <p>
         <strong style={{ color: theme.colors.accent }}>Goal:</strong>{" "}
-        {formatCents(draft.goalCents)}
+        <span className="money">{formatCents(draft.goalCents)}</span>
       </p>
 
       <div
         style={{
-          display: "inline-block",
+          display: "inline-flex",
+          alignItems: "center",
+          minHeight: 44,
           marginTop: "0.35rem",
-          padding: "0.35rem 0.7rem",
-          borderRadius: 4,
+          padding: "0 1rem",
+          borderRadius: 12,
           background: theme.colors.accent,
           color: theme.colors.accentInk,
           fontSize: "1rem",
@@ -63,16 +73,14 @@ export function SupporterPagePreview({
         Shop or donate
       </div>
 
-      <h3 style={{ fontSize: "1rem", marginBottom: "0.35rem", marginTop: "1.25rem" }}>
-        Offers
-      </h3>
-      <ul className="sku-list" style={{ borderColor: theme.colors.line }}>
+      <h3>Offers</h3>
+      <ul className="sku-list">
         {skus.map((s) => (
           <li key={s.id} style={{ borderColor: theme.colors.line }}>
-            {s.name}
-            {s.kind === "product"
-              ? ` — ${formatCents(s.retailCents)}`
-              : " — any amount"}
+            <span>{s.name}</span>
+            <span className="money">
+              {s.kind === "product" ? formatCents(s.retailCents) : "any amount"}
+            </span>
           </li>
         ))}
       </ul>
@@ -82,9 +90,7 @@ export function SupporterPagePreview({
         </p>
       ) : null}
 
-      <h3 style={{ fontSize: "1rem", marginTop: "1.25rem" }}>
-        Where the money goes
-      </h3>
+      <h3>Where the money goes</h3>
       {samples.map((sample) => (
         <div
           className="fee-row"
@@ -104,7 +110,7 @@ export function SupporterPagePreview({
           </div>
           <div style={{ textAlign: "right" }}>
             <div>Program receives</div>
-            <strong style={{ color: theme.colors.accent }}>
+            <strong className="money" style={{ color: theme.colors.accent }}>
               {formatCents(sample.programReceivesCents)}
             </strong>
             <div style={{ color: theme.colors.muted }}>

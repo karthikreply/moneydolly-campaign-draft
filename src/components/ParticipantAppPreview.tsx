@@ -51,7 +51,7 @@ export function ParticipantAppPreview({ draft }: { draft: CampaignDraft }) {
         </div>
         <h3>Jordan Lee</h3>
         <p className="phone-sub">{draft.brief.orgDisplayName}</p>
-        <p className="phone-metric">
+        <p className="phone-metric money">
           Personal goal {formatCents(raised)} of {formatCents(personalGoal)}
         </p>
         <div className="goal-track" aria-hidden="true">

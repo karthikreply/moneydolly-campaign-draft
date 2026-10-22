@@ -8,6 +8,8 @@ import { resolveThemePack } from "../src/domain/campaign-draft/theme-packs";
 describe("theme packs", () => {
   it("resolves known packs and defaults unknown", () => {
     expect(resolveThemePack("spirit_week").name).toBe("Spirit week");
+    expect(resolveThemePack("community").name).toBe("Community");
+    expect(resolveThemePack("community").headlineVerb).toBe("Stand with");
     expect(resolveThemePack("nope").key).toBe("classic_season");
   });
 

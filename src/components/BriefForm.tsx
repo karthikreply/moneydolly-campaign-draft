@@ -95,159 +95,143 @@ export function BriefForm() {
 
   return (
     <form className="panel" onSubmit={onSubmit}>
-      <h2 style={{ marginTop: 0, fontFamily: "var(--font-display)" }}>
-        Campaign brief
-      </h2>
       <OmniBar
         busy={busy}
         onDrafted={(draftId) => router.push(`/drafts/${draftId}`)}
         onPartial={onPartial}
       />
 
-      <div className="field">
-        <label htmlFor="orgDisplayName">Organization display name</label>
-        <input
-          id="orgDisplayName"
-          name="orgDisplayName"
-          required
-          value={orgDisplayName}
-          onChange={(e) => setOrgDisplayName(e.target.value)}
-        />
+      <div className="field-row">
+        <div className="field">
+          <label htmlFor="orgDisplayName">Organization</label>
+          <input
+            id="orgDisplayName"
+            name="orgDisplayName"
+            required
+            value={orgDisplayName}
+            onChange={(e) => setOrgDisplayName(e.target.value)}
+          />
+        </div>
+
+        <div className="field">
+          <label htmlFor="sport">Sport</label>
+          <select
+            id="sport"
+            name="sport"
+            required
+            value={sport}
+            onChange={(e) => setSport(e.target.value)}
+          >
+            {SPORTS.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      <div className="field">
-        <label htmlFor="sport">Sport</label>
-        <select
-          id="sport"
-          name="sport"
-          required
-          value={sport}
-          onChange={(e) => setSport(e.target.value)}
-        >
-          {SPORTS.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <fieldset
-        id="theme-pack"
-        tabIndex={-1}
-        style={{
-          border: "1px solid var(--line)",
-          borderRadius: 6,
-          padding: "0.75rem 1rem",
-          marginBottom: "1rem",
-        }}
-      >
-        <legend style={{ fontWeight: 600 }}>
-          Campaign theme pack
-        </legend>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-            gap: "0.65rem",
-          }}
-        >
+      <fieldset id="theme-pack" tabIndex={-1} className="theme-picker">
+        <legend>Theme</legend>
+        <div className="theme-grid">
           {THEME_LIST.map((theme) => {
             const active = theme.key === themeKey;
             return (
               <button
                 key={theme.key}
                 type="button"
+                className="theme-card"
                 aria-pressed={active}
                 onClick={() => setThemeKey(theme.key)}
-                style={{
-                  textAlign: "left",
-                  border: active
-                    ? `3px solid ${theme.colors.ink}`
-                    : "2px solid var(--line)",
-                  borderRadius: 6,
-                  padding: "0.65rem",
-                  background: theme.colors.background,
-                  color: theme.colors.ink,
-                  cursor: "pointer",
-                }}
+                style={{ background: theme.colors.background, color: theme.colors.ink }}
               >
-                <div
-                  style={{
-                    height: 8,
-                    borderRadius: 4,
-                    background: theme.colors.accent,
-                    marginBottom: 8,
-                  }}
-                />
-                <div style={{ fontFamily: theme.fonts.display }}>
+                <span className="theme-swatch" aria-hidden="true">
+                  <i style={{ background: theme.colors.accent }} />
+                  <i style={{ background: theme.colors.backgroundAlt }} />
+                  <i style={{ background: theme.colors.ink }} />
+                </span>
+                <span className="theme-name" style={{ fontFamily: theme.fonts.display }}>
                   {theme.name}
-                  {active ? " · in use" : ""}
-                </div>
-                <div style={{ marginTop: 4 }}>{theme.productTags.slice(0, 2).join(" · ")}</div>
+                </span>
+                <span className="theme-tags">{theme.productTags.slice(0, 2).join(" · ")}</span>
+                {active ? (
+                  <span className="theme-check" aria-hidden="true">
+                    ✓
+                  </span>
+                ) : null}
+                {active ? <span className="sr-only">Selected</span> : null}
               </button>
             );
           })}
         </div>
-        <p className="muted" style={{ marginBottom: 0, marginTop: "0.75rem" }}>
-          {selectedTheme.description} · tone: {selectedTheme.copyTone}
+        <p className="theme-note">
+          {selectedTheme.description} Tone: {selectedTheme.copyTone}.
         </p>
       </fieldset>
 
-      <div className="field">
-        <label htmlFor="rosterSize">Roster size</label>
-        <input
-          id="rosterSize"
-          name="rosterSize"
-          type="number"
-          min={1}
-          required
-          value={rosterSize}
-          onChange={(e) => setRosterSize(e.target.value)}
-        />
+      <div className="field-row">
+        <div className="field">
+          <label htmlFor="rosterSize">Roster size</label>
+          <input
+            id="rosterSize"
+            name="rosterSize"
+            type="number"
+            min={1}
+            required
+            value={rosterSize}
+            onChange={(e) => setRosterSize(e.target.value)}
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="note">Director note</label>
+          <input
+            id="note"
+            name="note"
+            placeholder='"under $25" or "no apparel"'
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+          <span className="hint">Keyword filters only. We tell you when nothing matched.</span>
+        </div>
       </div>
 
-      <div className="field">
-        <label htmlFor="windowStart">Window start</label>
-        <input
-          id="windowStart"
-          name="windowStart"
-          type="date"
-          required
-          value={windowStart}
-          onChange={(e) => setWindowStart(e.target.value)}
-        />
+      <div className="field-row">
+        <div className="field">
+          <label htmlFor="windowStart">Starts</label>
+          <input
+            id="windowStart"
+            name="windowStart"
+            type="date"
+            required
+            value={windowStart}
+            onChange={(e) => setWindowStart(e.target.value)}
+          />
+        </div>
+
+        <div className="field">
+          <label htmlFor="windowEnd">Ends</label>
+          <input
+            id="windowEnd"
+            name="windowEnd"
+            type="date"
+            required
+            value={windowEnd}
+            onChange={(e) => setWindowEnd(e.target.value)}
+          />
+        </div>
       </div>
 
-      <div className="field">
-        <label htmlFor="windowEnd">Window end</label>
-        <input
-          id="windowEnd"
-          name="windowEnd"
-          type="date"
-          required
-          value={windowEnd}
-          onChange={(e) => setWindowEnd(e.target.value)}
-        />
+      {error ? (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      <div className="publish-bar">
+        <button className="btn" type="submit" disabled={busy}>
+          {busy ? "Drafting…" : "Build draft"}
+        </button>
       </div>
-
-      <div className="field">
-        <label htmlFor="note">Director note (keyword filters only)</label>
-        <textarea
-          id="note"
-          name="note"
-          rows={3}
-          placeholder='e.g. "under $25" or "no apparel"'
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-        />
-      </div>
-
-      {error ? <p className="error">{error}</p> : null}
-
-      <button className="btn" type="submit" disabled={busy}>
-        {busy ? "Drafting…" : "Draft from form"}
-      </button>
     </form>
   );
 }
