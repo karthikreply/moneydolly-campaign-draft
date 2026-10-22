@@ -8,13 +8,15 @@ import type { CampaignDraft, CatalogSku } from "@/domain/campaign-draft/types";
 export function SupporterPagePreview({
   draft,
   catalog,
+  donationFeeBps,
 }: {
   draft: CampaignDraft;
   catalog: CatalogSku[];
+  donationFeeBps?: number;
 }) {
   const theme = resolveThemePack(draft.brief.themeKey);
   const skus = catalog.filter((s) => draft.skuIds.includes(s.id));
-  const samples = buildFeePreviewSamples(skus);
+  const samples = buildFeePreviewSamples(skus, donationFeeBps);
   const products = skus.filter((s) => s.kind === "product");
 
   return (
@@ -23,7 +25,7 @@ export function SupporterPagePreview({
       style={{
         background: `linear-gradient(160deg, ${theme.colors.background} 0%, ${theme.colors.backgroundAlt} 55%, ${theme.colors.background} 100%)`,
         color: theme.colors.ink,
-        borderColor: theme.colors.line,
+        borderColor: "var(--operator-primary, " + theme.colors.line + ")",
         fontFamily: theme.fonts.body,
       }}
     >

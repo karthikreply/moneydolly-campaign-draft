@@ -4,9 +4,12 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { resolveThemePack } from "@/domain/campaign-draft/theme-packs";
 import type { CampaignDraft, CatalogSku } from "@/domain/campaign-draft/types";
+import { feeRateToBps } from "@/domain/operators";
 import { NoteFilterBadge } from "./NoteFilterBadge";
+import { ParticipantAppPreview } from "./ParticipantAppPreview";
 import { PublishBar } from "./PublishBar";
 import { SupporterPagePreview } from "./SupporterPagePreview";
+import { useOperator } from "./OperatorProvider";
 
 export function DraftReviewSplit({
   initialDraft,
@@ -16,6 +19,7 @@ export function DraftReviewSplit({
   catalog: CatalogSku[];
 }) {
   const router = useRouter();
+  const { operator } = useOperator();
   const [draft, setDraft] = useState(initialDraft);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -25,6 +29,13 @@ export function DraftReviewSplit({
 
   const canPublish = draft.headline.trim().length > 0 && draft.status === "draft";
   const theme = resolveThemePack(draft.brief.themeKey);
+  const defaultLabels: Record<string, string> = {
+    windowDays: "Window defaulted to 14 days",
+    windowEnd: "End date defaulted to 14 days",
+    themePack: "Theme defaulted to Classic season",
+    orgName: "Organization defaulted to Program",
+  };
+  const defaulted = draft.brief.defaultedFields ?? [];
 
   const selectedSkus = useMemo(
     () => catalog.filter((s) => draft.skuIds.includes(s.id)),
@@ -84,6 +95,11 @@ export function DraftReviewSplit({
         >
           Theme: {theme.name}
         </span>
+        {defaulted.map((field) => (
+          <span key={field} className="badge badge-default">
+            {defaultLabels[field] ?? `${field} defaulted`}
+          </span>
+        ))}
         <span className="badge">Preset v{draft.presetVersion}</span>
         <span className="badge">Copy: {draft.copyStatus}</span>
         {publishedId ? (
@@ -169,7 +185,14 @@ export function DraftReviewSplit({
           />
         </div>
 
-        <SupporterPagePreview draft={draft} catalog={catalog} />
+        <div className="preview-pair">
+          <SupporterPagePreview
+            draft={draft}
+            catalog={catalog}
+            donationFeeBps={feeRateToBps(operator.customFeeRate)}
+          />
+          <ParticipantAppPreview draft={draft} />
+        </div>
       </div>
 
       {publishedId ? (

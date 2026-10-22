@@ -19,12 +19,23 @@ const MAX = {
   whyDraft: 200,
 };
 
+/** "Program" reads as "Our Program", never "Program's". */
+export function formatOrgForCopy(name: string): string {
+  if (name.trim().toLowerCase() === "program") return "Our Program";
+  return name.trim();
+}
+
 export function fallbackCopy(brief: CampaignBrief, goalCents: number): CopyResult {
   const theme = resolveThemePack(brief.themeKey);
   const goal = `$${(goalCents / 100).toLocaleString("en-US")}`;
+  const org = formatOrgForCopy(brief.orgDisplayName);
+  const programLine =
+    org === "Our Program"
+      ? `Support Our Program ${brief.sport} fundraiser — every gift moves the team closer to ${goal}.`
+      : `Support our ${brief.sport} ${theme.name.toLowerCase()} — every gift moves the team closer to ${goal}.`;
   return {
-    headline: `${theme.headlineVerb} ${brief.orgDisplayName}`,
-    supportingLine: `Support our ${brief.sport} ${theme.name.toLowerCase()} — every gift moves the team closer to ${goal}.`,
+    headline: `${theme.headlineVerb} ${org}`,
+    supportingLine: programLine,
     whyDraft: `Fallback copy (${theme.name} tone) — AI copy was unavailable.`,
     copyStatus: "fallback",
   };
@@ -49,7 +60,7 @@ function buildPrompt(
 ): string {
   const theme = resolveThemePack(brief.themeKey);
   return JSON.stringify({
-    org: brief.orgDisplayName,
+    org: formatOrgForCopy(brief.orgDisplayName),
     sport: brief.sport,
     goalCents,
     theme: {
@@ -75,9 +86,14 @@ export class TemplateLlmClient implements LlmClient {
       theme: { name: string; tone: string; headlineVerb: string };
     };
     const goal = `$${(data.goalCents / 100).toLocaleString("en-US")}`;
+    const org = data.org.trim().toLowerCase() === "program" ? "Our Program" : data.org;
+    const supporting =
+      org === "Our Program"
+        ? `Support Our Program ${data.sport} fundraiser. Raising ${goal}. Shop or donate to help.`
+        : `${data.theme.name}: our ${data.sport} program is raising ${goal}. Shop or donate to help.`;
     return {
-      headline: `${data.theme.headlineVerb} ${data.org}`,
-      supportingLine: `${data.theme.name}: our ${data.sport} program is raising ${goal}. Shop or donate to help.`,
+      headline: `${data.theme.headlineVerb} ${org}`,
+      supportingLine: supporting,
       whyDraft: `Drafted with ${data.theme.name} tone (${data.theme.tone}). Edit freely before publish.`,
     };
   }

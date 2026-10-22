@@ -18,6 +18,7 @@ const briefSchema = z.object({
       "night_lights",
     ])
     .default("classic_season"),
+  defaultedFields: z.array(z.string()).optional(),
 });
 
 export async function POST(req: Request) {

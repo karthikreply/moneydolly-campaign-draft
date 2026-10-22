@@ -1,7 +1,9 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID } from "crypto";
 import type Database from "better-sqlite3";
-import { generateDraftCopy } from "./draft-copy-generator";
+import { generateGuardedCopy } from "@/lib/copyGenerator";
+import { PROTOTYPE_TODAY } from "@/lib/hydrateIntent";
 import { runDraftRules } from "./draft-rules-engine";
+import { hydrateOmniBrief } from "./omni-hydrate";
 import {
   createPresetStore,
   listSportPresets,
@@ -138,6 +140,52 @@ export class CampaignDraftService {
     return preset;
   }
 
+  async intakeUtterance(input: {
+    operatorId: string;
+    orgId: string;
+    createdBy: string;
+    utterance: string;
+  }): Promise<{
+    canDraft: boolean;
+    score: number;
+    extractedSlots: ReturnType<typeof hydrateOmniBrief>["extractedSlots"];
+    missingSlots: string[];
+    defaultedFields: string[];
+    draft: CampaignDraft | null;
+  }> {
+    const preset = resolveSportPreset(this.presetStore, input.operatorId, "general");
+    const hydrated = hydrateOmniBrief({
+      utterance: input.utterance,
+      preset,
+      catalog: this.catalog,
+      now: PROTOTYPE_TODAY,
+    });
+    if (!hydrated.canDraft || !hydrated.brief) {
+      return {
+        canDraft: false,
+        score: hydrated.score,
+        extractedSlots: hydrated.extractedSlots,
+        missingSlots: hydrated.missingSlots,
+        defaultedFields: [],
+        draft: null,
+      };
+    }
+    const draft = await this.createDraft({
+      operatorId: input.operatorId,
+      orgId: input.orgId,
+      createdBy: input.createdBy,
+      brief: hydrated.brief,
+    });
+    return {
+      canDraft: true,
+      score: hydrated.score,
+      extractedSlots: hydrated.extractedSlots,
+      missingSlots: hydrated.missingSlots,
+      defaultedFields: hydrated.defaultedFields,
+      draft,
+    };
+  }
+
   async createDraft(input: {
     operatorId: string;
     orgId: string;
@@ -163,12 +211,20 @@ export class CampaignDraftService {
       preset,
       catalog: this.catalog,
     });
-    const copy = await generateDraftCopy({
-      brief,
+    const guarded = await generateGuardedCopy({
+      orgName: brief.orgDisplayName,
+      sport: brief.sport,
       goalCents: rules.goalCents,
-      catalog: this.catalog,
-      skuIds: rules.skuIds,
+      windowStart: brief.windowStart,
+      windowEnd: brief.windowEnd,
+      whyRules: rules.whyRules,
     });
+    const copy = {
+      headline: guarded.headline,
+      supportingLine: guarded.supportingLine,
+      whyDraft: guarded.whyDraft,
+      copyStatus: guarded.usedFallback ? ("fallback" as const) : ("ok" as const),
+    };
 
     const id = randomUUID();
     const ts = nowIso();

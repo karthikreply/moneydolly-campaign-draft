@@ -74,4 +74,16 @@ describe("generateDraftCopy", () => {
     const copy = fallbackCopy(brief, 300000);
     expect(copy.headline).toContain("Lincoln VB");
   });
+
+  it("formats the Program fallback without a possessive", async () => {
+    const copy = await generateDraftCopy({
+      brief: { ...brief, orgDisplayName: "Program", sport: "soccer" },
+      goalCents: 100000,
+      catalog: STUB_CATALOG,
+      skuIds: ["sku_donation"],
+    });
+    expect(copy.headline).toContain("Our Program");
+    expect(copy.headline).not.toMatch(/Program's/i);
+    expect(copy.supportingLine).toMatch(/Our Program/i);
+  });
 });

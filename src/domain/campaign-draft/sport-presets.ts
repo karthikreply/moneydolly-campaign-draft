@@ -1,5 +1,9 @@
-import { randomUUID } from "node:crypto";
 import type { SportPreset, SurfaceOrder } from "./types";
+
+/** Works in Node and the browser bundle; no node: scheme import. */
+function randomUUID(): string {
+  return globalThis.crypto.randomUUID();
+}
 
 export interface PresetUpsertInput {
   operatorId: string;

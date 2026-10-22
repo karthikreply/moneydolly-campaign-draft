@@ -11,6 +11,8 @@ export interface CampaignBrief {
   orgDisplayName: string;
   /** Full theme pack key — colors, fonts, SKU tags, copy tone */
   themeKey: string;
+  /** Slots filled by safe defaults after the gate passed. */
+  defaultedFields?: string[];
 }
 
 export interface CatalogSku {
