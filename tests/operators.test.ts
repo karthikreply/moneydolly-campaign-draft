@@ -15,6 +15,17 @@ describe("operator registry", () => {
       expect(operator.customFeeRate).toBeLessThan(1);
     }
     expect(OPERATORS[0].customFeeRate).not.toBe(OPERATORS[1].customFeeRate);
+  });
+
+  it("gives each vendor its own agent persona", () => {
+    const personas = OPERATORS.map((operator) => operator.assistant);
+    expect(new Set(personas.map((p) => p.name)).size).toBe(personas.length);
+    for (const [index, persona] of personas.entries()) {
+      expect(persona.greeting).toContain(persona.name);
+      expect(persona.greeting).toContain(OPERATORS[index].operatorName.split(" ")[0]);
+      expect(persona.voice.rate).toBeGreaterThan(0);
+      expect(persona.voice.pitch).toBeGreaterThan(0);
+    }
     expect(feeRateToBps(0.05)).toBe(500);
     expect(feeRateToBps(0.09)).toBe(900);
   });

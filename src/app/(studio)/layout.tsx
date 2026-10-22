@@ -5,6 +5,9 @@ import { OperatorSwitcher } from "@/components/OperatorSwitcher";
 export default function StudioLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#studio-main">
+        Skip to content
+      </a>
       <header className="topbar">
         <div className="brand-lockup">
           <span className="operator-mark" role="img" aria-label="Operator logo" />
@@ -12,7 +15,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
             <p className="brand">
               Field<span>Fund</span> Draft
             </p>
-            <p className="muted" style={{ margin: 0, fontSize: "0.9rem" }}>
+            <p className="muted" style={{ margin: 0 }}>
               Director console · rules for numbers · AI for copy
             </p>
           </div>
@@ -20,10 +23,11 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
         <OperatorSwitcher />
         <nav style={{ display: "flex", gap: "1rem" }}>
           <Link href="/">Home</Link>
-          <Link href="/drafts/new">New campaign</Link>
+          <Link href="/agent">Talk to the agent</Link>
+          <Link href="/drafts/new">Form</Link>
         </nav>
       </header>
-      {children}
+      <div id="studio-main">{children}</div>
     </div>
   );
 }

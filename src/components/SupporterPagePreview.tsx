@@ -29,7 +29,7 @@ export function SupporterPagePreview({
         fontFamily: theme.fonts.body,
       }}
     >
-      <p style={{ marginTop: 0, fontSize: "0.8rem", color: theme.colors.muted }}>
+      <p style={{ marginTop: 0, color: theme.colors.muted }}>
         Supporter preview · {theme.name} · not live checkout
       </p>
       <h2
@@ -56,7 +56,7 @@ export function SupporterPagePreview({
           borderRadius: 4,
           background: theme.colors.accent,
           color: theme.colors.accentInk,
-          fontSize: "0.85rem",
+          fontSize: "1rem",
           fontWeight: 600,
         }}
       >
@@ -93,11 +93,11 @@ export function SupporterPagePreview({
         >
           <div>
             <div>{sample.label}</div>
-            <div style={{ color: theme.colors.muted, fontSize: "0.9rem" }}>
+            <div style={{ color: theme.colors.muted }}>
               Supporter pays {formatCents(sample.supporterPaysCents)}
             </div>
             {sample.notTowardGoalNote ? (
-              <div style={{ color: theme.colors.muted, fontSize: "0.85rem" }}>
+              <div style={{ color: theme.colors.muted }}>
                 {sample.notTowardGoalNote}
               </div>
             ) : null}
@@ -107,7 +107,7 @@ export function SupporterPagePreview({
             <strong style={{ color: theme.colors.accent }}>
               {formatCents(sample.programReceivesCents)}
             </strong>
-            <div style={{ color: theme.colors.muted, fontSize: "0.85rem" }}>
+            <div style={{ color: theme.colors.muted }}>
               Toward goal {formatCents(sample.towardGoalCents)}
             </div>
           </div>

@@ -135,6 +135,7 @@ export function PublicCampaignPage({
           "--pub-bg-alt": theme.colors.backgroundAlt,
           "--pub-ink": theme.colors.ink,
           "--pub-muted": theme.colors.muted,
+          "--pub-panel": theme.colors.panel,
           "--pub-line": theme.colors.line,
           "--pub-accent": theme.colors.accent,
           "--pub-accent-ink": theme.colors.accentInk,
@@ -144,6 +145,9 @@ export function PublicCampaignPage({
         } as React.CSSProperties
       }
     >
+      <a className="skip-link" href="#support-main">
+        Skip to campaign
+      </a>
       <header className="public-topbar">
         <span className="public-operator">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -153,7 +157,7 @@ export function PublicCampaignPage({
         <span className="public-secure">Secure checkout · mock payments in this prototype</span>
       </header>
 
-      <main className="public-grid">
+      <main id="support-main" className="public-grid">
         <section className="public-hero">
           {participant ? (
             <p className="public-kicker">
@@ -167,7 +171,14 @@ export function PublicCampaignPage({
           <p className="public-lede">{campaign.supportingLine}</p>
 
           <div className="public-progress">
-            <div className="public-progress-bar" aria-hidden>
+            <div
+              className="public-progress-bar"
+              role="progressbar"
+              aria-valuenow={pct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`${formatCents(progress.raisedCents)} raised of ${formatCents(progress.goalCents)}`}
+            >
               <span style={{ width: `${pct}%` }} />
             </div>
             <div className="public-progress-meta">
@@ -231,9 +242,11 @@ export function PublicCampaignPage({
                     key={cents}
                     type="button"
                     className={donationCents === cents ? "is-selected" : ""}
+                    aria-pressed={donationCents === cents}
                     onClick={() => setDonationCents(donationCents === cents ? 0 : cents)}
                   >
                     {formatCents(cents)}
+                    {donationCents === cents ? " selected" : ""}
                   </button>
                 ))}
                 <label className="public-donate-custom">
@@ -242,6 +255,7 @@ export function PublicCampaignPage({
                     type="number"
                     min={0}
                     step={1}
+                    aria-label="Other donation amount in dollars"
                     placeholder="Other"
                     value={donationCents > 0 && !DONATION_PRESETS.includes(donationCents) ? donationCents / 100 : ""}
                     onChange={(e) => setDonationCents(Math.max(0, Math.round(Number(e.target.value || 0) * 100)))}
@@ -333,7 +347,11 @@ export function PublicCampaignPage({
                 <span>Card entry handled by the payment provider in production</span>
               </div>
 
-              {error ? <p className="public-error">{error}</p> : null}
+              {error ? (
+                <p className="public-error" role="alert">
+                  {error}
+                </p>
+              ) : null}
               <button type="button" className="public-pay" disabled={busy || cartEmpty || !quote} onClick={() => void pay()}>
                 {busy ? "Processing…" : quote ? `Pay ${formatCents(quote.totalCents)}` : "Pay"}
               </button>

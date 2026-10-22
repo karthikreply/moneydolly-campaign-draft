@@ -142,7 +142,7 @@ export function BriefForm() {
           marginBottom: "1rem",
         }}
       >
-        <legend style={{ fontWeight: 600, fontSize: "0.85rem" }}>
+        <legend style={{ fontWeight: 600 }}>
           Campaign theme pack
         </legend>
         <div
@@ -158,12 +158,13 @@ export function BriefForm() {
               <button
                 key={theme.key}
                 type="button"
+                aria-pressed={active}
                 onClick={() => setThemeKey(theme.key)}
                 style={{
                   textAlign: "left",
                   border: active
-                    ? `2px solid ${theme.colors.accent}`
-                    : "1px solid var(--line)",
+                    ? `3px solid ${theme.colors.ink}`
+                    : "2px solid var(--line)",
                   borderRadius: 6,
                   padding: "0.65rem",
                   background: theme.colors.background,
@@ -179,17 +180,16 @@ export function BriefForm() {
                     marginBottom: 8,
                   }}
                 />
-                <div style={{ fontFamily: theme.fonts.display, fontSize: "0.95rem" }}>
+                <div style={{ fontFamily: theme.fonts.display }}>
                   {theme.name}
+                  {active ? " · in use" : ""}
                 </div>
-                <div style={{ fontSize: "0.75rem", opacity: 0.8, marginTop: 4 }}>
-                  {theme.productTags.slice(0, 2).join(" · ")}
-                </div>
+                <div style={{ marginTop: 4 }}>{theme.productTags.slice(0, 2).join(" · ")}</div>
               </button>
             );
           })}
         </div>
-        <p className="muted" style={{ marginBottom: 0, marginTop: "0.75rem", fontSize: "0.85rem" }}>
+        <p className="muted" style={{ marginBottom: 0, marginTop: "0.75rem" }}>
           {selectedTheme.description} · tone: {selectedTheme.copyTone}
         </p>
       </fieldset>

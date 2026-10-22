@@ -127,7 +127,7 @@ export function DraftReviewSplit({
           <h2 style={{ marginTop: 0, fontFamily: "var(--font-display)" }}>
             Edit draft
           </h2>
-          <p className="muted" style={{ fontSize: "0.9rem" }}>
+          <p className="muted">
             {draft.whyRules}
           </p>
 
@@ -213,7 +213,7 @@ export function DraftReviewSplit({
       {publishedId && published ? (
         <div className="share-links">
           <h3>Campaign is live. Share these links.</h3>
-          <p className="muted" style={{ margin: 0, fontSize: "0.9rem" }}>
+          <p className="muted" style={{ margin: 0 }}>
             Supporters open these to shop or donate. Fees shown use {operator.operatorName}
             &apos;s rate; player links credit that player&apos;s personal goal.
           </p>

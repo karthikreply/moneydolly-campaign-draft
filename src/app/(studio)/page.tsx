@@ -16,9 +16,12 @@ export default function HomePage() {
         <li>LLM drafts headline/copy with fallback templates</li>
         <li>Layout B: edit left / supporter preview right</li>
       </ul>
-      <p>
-        <Link className="btn btn-accent" href="/drafts/new">
-          New campaign
+      <p style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+        <Link className="btn btn-accent" href="/agent">
+          Talk to the campaign agent
+        </Link>
+        <Link className="btn btn-secondary" href="/drafts/new">
+          Use the form instead
         </Link>
       </p>
     </main>
