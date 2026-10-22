@@ -409,23 +409,160 @@ button {
 
 .split {
   display: grid;
-  grid-template-columns: minmax(0, 7fr) minmax(0, 8fr);
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
   gap: var(--s-6);
   align-items: start;
 }
 
-.preview-pair {
+.preview-col {
+  position: sticky;
+  top: var(--s-5);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
   gap: var(--s-4);
-  align-items: start;
+  min-width: 0;
 }
 
 @media (max-width: 1080px) {
-  .split,
-  .preview-pair {
+  .split {
     grid-template-columns: 1fr;
   }
+  .preview-col {
+    position: static;
+  }
+}
+
+.panel-head-sub {
+  margin-top: var(--s-6);
+  padding-top: var(--s-5);
+  border-top: 1px solid var(--line);
+}
+
+.panel-head-sub h2 {
+  font-size: var(--text-lg);
+}
+
+/* Segmented control (preview switch) */
+.segmented {
+  display: inline-flex;
+  justify-self: start;
+  padding: 4px;
+  gap: 4px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.segmented button {
+  min-height: 44px;
+  padding: 0 var(--s-5);
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.segmented button[aria-pressed="true"] {
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: var(--shadow-1);
+}
+
+.phone-stage {
+  display: flex;
+  justify-content: center;
+  padding: var(--s-6) var(--s-4);
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+.phone-stage .phone-wrap {
+  width: min(320px, 100%);
+}
+
+/* Goal + offers summary */
+.goal-field {
+  max-width: 240px;
+}
+
+.input-prefix {
+  position: relative;
+}
+
+.input-prefix > span {
+  position: absolute;
+  left: var(--s-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-family: var(--font-mono-stack);
+  pointer-events: none;
+}
+
+.input-prefix input {
+  padding-left: calc(var(--s-3) + 1.1em);
+  width: 100%;
+}
+
+.offer-list {
+  list-style: none;
+  margin: 0 0 var(--s-5);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.offer-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  min-height: 48px;
+}
+
+.offer-list li + li {
+  border-top: 1px solid var(--line);
+}
+
+.offer-list .money {
+  white-space: nowrap;
+  color: var(--ink-2);
+}
+
+.rules-note {
+  margin-bottom: var(--s-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--paper);
+}
+
+.rules-note summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--s-4);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rules-note[open] summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.rules-note p {
+  margin: var(--s-3) var(--s-4);
+}
+
+.btn-sm {
+  min-height: 44px;
+  padding: 0 var(--s-4);
+  font-size: var(--text-sm);
 }
 
 /* Browser frame around the supporter preview */
@@ -903,17 +1040,54 @@ button {
 /* ---------- Share links ---------- */
 
 .share-links {
-  margin-top: var(--s-6);
+  margin-bottom: var(--s-6);
   padding: var(--s-5) var(--s-6);
   border: 1px solid var(--line);
+  border-left: 4px solid var(--brand);
   border-radius: var(--r-lg);
   background: var(--panel);
   box-shadow: var(--shadow-2);
 }
 
-.share-links h3 {
-  font-size: var(--text-lg);
-  margin-bottom: var(--s-2);
+.share-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+}
+
+.share-head h2 {
+  font-size: var(--text-xl);
+  margin: 0 0 var(--s-1);
+}
+
+.share-head p {
+  margin: 0;
+}
+
+.share-team {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  margin-top: var(--s-5);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--brand-tint);
+}
+
+.share-team a {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.share-name {
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .share-links ul {
@@ -921,24 +1095,35 @@ button {
   padding: 0;
   margin: var(--s-4) 0 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: var(--s-2);
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 0 var(--s-6);
 }
 
 .share-links li {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   gap: var(--s-3);
-  padding: var(--s-2) var(--s-3);
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  background: var(--paper);
+  min-height: 56px;
+  border-bottom: 1px solid var(--line);
+}
+
+.share-links li .share-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.share-links li a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--s-2);
+  font-weight: 600;
 }
 
 .share-links code {
   font-family: var(--font-mono-stack);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 
 /* ---------- Phone mockup ---------- */

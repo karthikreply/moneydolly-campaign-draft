@@ -39,6 +39,19 @@ export function DraftReviewSplit({
     initialCampaign ?? null,
   );
   const [roster, setRoster] = useState<Participant[]>(initialRoster ?? []);
+  const [view, setView] = useState<"supporter" | "student">("supporter");
+  const [copied, setCopied] = useState<string | null>(null);
+
+  async function copyLink(path: string) {
+    const url = `${window.location.origin}${path}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(path);
+      window.setTimeout(() => setCopied((c) => (c === path ? null : c)), 2000);
+    } catch {
+      window.prompt("Copy this link", url);
+    }
+  }
 
   const canPublish = draft.headline.trim().length > 0 && draft.status === "draft";
   const theme = resolveThemePack(draft.brief.themeKey);
@@ -92,6 +105,9 @@ export function DraftReviewSplit({
     }
   }
 
+  const teamPath = published ? `/c/${published.slug}?op=${operator.id}` : "";
+  const editable = draft.status === "draft";
+
   return (
     <div>
       <div className="status-strip">
@@ -103,25 +119,71 @@ export function DraftReviewSplit({
             {defaultLabels[field] ?? `${field} defaulted`}
           </span>
         ))}
-        <span className="badge">Preset v{draft.presetVersion}</span>
-        <span className="badge">Copy {draft.copyStatus}</span>
       </div>
+
+      {publishedId && published ? (
+        <section className="share-links" aria-labelledby="share-heading">
+          <div className="share-head">
+            <div>
+              <h2 id="share-heading">Your campaign is live</h2>
+              <p className="muted">
+                Send the team link to everyone. Each player link credits that player&apos;s goal.
+              </p>
+            </div>
+            <button className="btn btn-secondary" type="button" onClick={() => router.push("/agent")}>
+              Start another
+            </button>
+          </div>
+
+          <div className="share-team">
+            <span className="share-name">Team page</span>
+            <a href={teamPath} target="_blank" rel="noreferrer">
+              <code>/c/{published.slug}</code>
+            </a>
+            <button className="btn btn-accent" type="button" onClick={() => void copyLink(teamPath)}>
+              {copied === teamPath ? "Copied" : "Copy link"}
+            </button>
+          </div>
+
+          <ul aria-label="Player links">
+            {roster.map((p) => {
+              const path = `/c/${published.slug}/${p.slug}?op=${operator.id}`;
+              return (
+                <li key={p.id}>
+                  <span className="share-name">{p.displayName}</span>
+                  <a href={path} target="_blank" rel="noreferrer" aria-label={`Open ${p.displayName}'s page`}>
+                    Open
+                  </a>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    type="button"
+                    onClick={() => void copyLink(path)}
+                    aria-label={`Copy ${p.displayName}'s link`}
+                  >
+                    {copied === path ? "Copied" : "Copy"}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="sr-only" aria-live="polite">
+            {copied ? "Link copied" : ""}
+          </p>
+        </section>
+      ) : null}
 
       <div className="split">
         <div className="panel">
           <div className="panel-head">
-            <h2>Edit</h2>
+            <h2>{editable ? "Edit the words" : "Campaign details"}</h2>
           </div>
-          <p className="muted" style={{ marginBottom: "var(--s-5)" }}>
-            {draft.whyRules}
-          </p>
 
           <div className="field">
             <label htmlFor="headline">Headline</label>
             <input
               id="headline"
               value={draft.headline}
-              disabled={draft.status !== "draft"}
+              disabled={!editable}
               onChange={(e) => setDraft({ ...draft, headline: e.target.value })}
               onBlur={() => void persist({ headline: draft.headline })}
             />
@@ -131,9 +193,9 @@ export function DraftReviewSplit({
             <label htmlFor="supportingLine">Supporting line</label>
             <textarea
               id="supportingLine"
-              rows={3}
+              rows={2}
               value={draft.supportingLine}
-              disabled={draft.status !== "draft"}
+              disabled={!editable}
               onChange={(e) =>
                 setDraft({ ...draft, supportingLine: e.target.value })
               }
@@ -141,9 +203,26 @@ export function DraftReviewSplit({
             />
           </div>
 
-          <div className="field-row">
-            <div className="field">
-              <label htmlFor="goalDollars">Goal (USD)</label>
+          <div className="field">
+            <label htmlFor="whyDraft">Why we&apos;re raising</label>
+            <textarea
+              id="whyDraft"
+              rows={2}
+              value={draft.whyDraft}
+              disabled={!editable}
+              onChange={(e) => setDraft({ ...draft, whyDraft: e.target.value })}
+              onBlur={() => void persist({ whyDraft: draft.whyDraft })}
+            />
+          </div>
+
+          <div className="panel-head panel-head-sub">
+            <h2>Goal and offers</h2>
+          </div>
+
+          <div className="field goal-field">
+            <label htmlFor="goalDollars">Goal (USD)</label>
+            <div className="input-prefix">
+              <span aria-hidden="true">$</span>
               <input
                 id="goalDollars"
                 type="number"
@@ -151,39 +230,33 @@ export function DraftReviewSplit({
                 step={1}
                 className="money"
                 value={Math.round(draft.goalCents / 100)}
-                disabled={draft.status !== "draft"}
+                disabled={!editable}
                 onChange={(e) =>
                   setDraft({ ...draft, goalCents: Math.max(0, Math.round(Number(e.target.value) * 100)) })
                 }
                 onBlur={() => void persist({ goalCents: draft.goalCents })}
               />
             </div>
-            <div className="field">
-              <span className="label">Offers</span>
-              <ul className="sku-list">
-                {selectedSkus.map((s) => (
-                  <li key={s.id}>
-                    <span>{s.name}</span>
-                    <span className="money muted">
-                      {s.kind === "product" ? `$${(s.retailCents / 100).toFixed(2)}` : "any"}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
           </div>
 
-          <div className="field">
-            <label htmlFor="whyDraft">Why this draft</label>
-            <textarea
-              id="whyDraft"
-              rows={2}
-              value={draft.whyDraft}
-              disabled={draft.status !== "draft"}
-              onChange={(e) => setDraft({ ...draft, whyDraft: e.target.value })}
-              onBlur={() => void persist({ whyDraft: draft.whyDraft })}
-            />
-          </div>
+          <ul className="offer-list" aria-label="Offers on this campaign">
+            {selectedSkus.map((s) => (
+              <li key={s.id}>
+                <span>{s.name}</span>
+                <span className="money">
+                  {s.kind === "product" ? `$${(s.retailCents / 100).toFixed(2)}` : "Any amount"}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          <details className="rules-note">
+            <summary>How these numbers were set</summary>
+            <p>{draft.whyRules}</p>
+            <p className="muted">
+              Preset v{draft.presetVersion} · Copy {draft.copyStatus}
+            </p>
+          </details>
 
           {error ? (
             <p className="error" role="alert">
@@ -191,70 +264,58 @@ export function DraftReviewSplit({
             </p>
           ) : null}
 
-          <PublishBar
-            canPublish={canPublish}
-            busy={busy}
-            onPublish={() => void onPublish()}
-          />
-        </div>
-
-        <div className="preview-pair">
-          <div className="browser" aria-label="Supporter page preview">
-            <div className="browser-bar">
-              <span className="browser-dots" aria-hidden="true">
-                <i />
-                <i />
-                <i />
-              </span>
-              <span className="browser-url">
-                {published ? `/c/${published.slug}` : "/c/your-campaign"}
-              </span>
-            </div>
-            <SupporterPagePreview
-              draft={draft}
-              catalog={catalog}
-              donationFeeBps={feeRateToBps(operator.customFeeRate)}
+          {editable ? (
+            <PublishBar
+              canPublish={canPublish}
+              busy={busy}
+              onPublish={() => void onPublish()}
             />
-          </div>
-          <ParticipantAppPreview draft={draft} />
+          ) : null}
         </div>
-      </div>
 
-      {publishedId && published ? (
-        <div className="share-links">
-          <span className="eyebrow">Live</span>
-          <h3>Share these links</h3>
-          <p className="muted">
-            Fees shown use {operator.operatorName}&apos;s rate. Player links credit that
-            player&apos;s personal goal.
-          </p>
-          <ul>
-            <li>
-              <span>Team page</span>
-              <a href={`/c/${published.slug}?op=${operator.id}`} target="_blank" rel="noreferrer">
-                <code>/c/{published.slug}</code>
-              </a>
-            </li>
-            {roster.map((p) => (
-              <li key={p.id}>
-                <span>{p.displayName}</span>
-                <a
-                  href={`/c/${published.slug}/${p.slug}?op=${operator.id}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <code>/{p.slug}</code>
-                </a>
-              </li>
-            ))}
-          </ul>
-          <div className="publish-bar">
-            <button className="btn btn-secondary" type="button" onClick={() => router.push("/agent")}>
-              Start another
+        <div className="preview-col">
+          <div className="segmented" role="group" aria-label="Preview">
+            <button
+              type="button"
+              aria-pressed={view === "supporter"}
+              onClick={() => setView("supporter")}
+            >
+              Supporter page
+            </button>
+            <button
+              type="button"
+              aria-pressed={view === "student"}
+              onClick={() => setView("student")}
+            >
+              Student app
             </button>
           </div>
+
+          {view === "supporter" ? (
+            <div className="browser" aria-label="Supporter page preview">
+              <div className="browser-bar">
+                <span className="browser-dots" aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                <span className="browser-url">
+                  {published ? `/c/${published.slug}` : "/c/your-campaign"}
+                </span>
+              </div>
+              <SupporterPagePreview
+                draft={draft}
+                catalog={catalog}
+                donationFeeBps={feeRateToBps(operator.customFeeRate)}
+              />
+            </div>
+          ) : (
+            <div className="phone-stage">
+              <ParticipantAppPreview draft={draft} />
+            </div>
+          )}
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }
