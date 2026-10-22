@@ -8,6 +8,9 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
       <a className="skip-link" href="#studio-main">
         Skip to content
       </a>
+      <p className="demo-banner" role="status">
+        Shared demo — try <Link href="/agent">Talk to the agent</Link>, then publish and open a player pay link.
+      </p>
       <header className="topbar">
         <Link href="/" className="brand-lockup" style={{ textDecoration: "none", color: "inherit" }}>
           <span className="operator-mark" role="img" aria-label="Operator logo" />
