@@ -2,6 +2,7 @@
 
 /** @type {import("next").NextConfig} */
 const nextConfig = {
+  devIndicators: false,
   serverExternalPackages: ["better-sqlite3"],
   webpack: (config) => {
     config.resolve.alias = {

@@ -5,7 +5,8 @@ import { hydrateIntent } from "@/lib/hydrateIntent";
 import type { ExtractedSlots } from "@/domain/campaign-draft/slot-extractor";
 
 type SpeechResult = {
-  results: ArrayLike<ArrayLike<{ transcript: string }>>;
+  resultIndex: number;
+  results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }>;
 };
 
 type SpeechRec = {
@@ -29,7 +30,7 @@ function createRecognizer(): SpeechRec | null {
   if (!Ctor) return null;
   const rec = new Ctor();
   rec.lang = "en-US";
-  rec.interimResults = false;
+  rec.interimResults = true;
   rec.continuous = false;
   return rec;
 }
@@ -75,8 +76,15 @@ export function OmniBar({
       return;
     }
     existing.onresult = (event) => {
-      const transcript = event.results[0]?.[0]?.transcript ?? "";
-      if (transcript) applyTranscript(transcript);
+      let finalText = "";
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const chunk = event.results[i]?.[0]?.transcript ?? "";
+        if (event.results[i]?.isFinal) finalText += chunk;
+        else interim += chunk;
+      }
+      if (interim.trim()) setText(interim);
+      if (finalText.trim()) applyTranscript(finalText.trim());
     };
     existing.onerror = () => {
       setListening(false);
@@ -84,7 +92,7 @@ export function OmniBar({
       inputRef.current?.focus();
     };
     existing.onend = () => setListening(false);
-    setSpeechNote(null);
+    setSpeechNote("Listening for one sentence. I stop when you pause. Click Talk to cancel.");
     setListening(true);
     existing.start();
   }
@@ -122,7 +130,7 @@ export function OmniBar({
           className="omni-mic"
           type="button"
           aria-pressed={listening}
-          aria-label={listening ? "Stop microphone" : "Push to talk"}
+          aria-label={listening ? "Stop listening" : "Dictate one sentence"}
           disabled={busy}
           onClick={toggleSpeech}
         >

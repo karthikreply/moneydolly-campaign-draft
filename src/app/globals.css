@@ -842,53 +842,149 @@ button {
 
 /* ---------- Theme picker ---------- */
 
+.brief-form {
+  font-family: var(--font-display);
+}
+
+.brief-head {
+  display: grid;
+  gap: var(--s-2);
+  margin-bottom: var(--s-5);
+  padding-bottom: var(--s-5);
+  border-bottom: 1px solid var(--line);
+}
+
+.brief-head h1 {
+  font-size: var(--text-xl);
+}
+
+.brief-head p {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--muted);
+  font-family: var(--font-body);
+}
+
+.brief-section {
+  margin-top: var(--s-5);
+  padding-top: var(--s-5);
+  border-top: 1px solid var(--line);
+}
+
+.brief-section h2,
+.brief-form .theme-picker legend {
+  display: block;
+  float: none;
+  width: 100%;
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 var(--s-4);
+}
+
+.brief-form .field {
+  margin-bottom: 0;
+}
+
+.brief-form .field label {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.brief-form .field input,
+.brief-form .field select {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--text-sm);
+  line-height: 1.3;
+}
+
+.brief-form .field select {
+  appearance: none;
+  padding-right: 2.75rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%23141c28' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+}
+
+.brief-form .field .hint,
+.brief-form .publish-bar p {
+  font-family: var(--font-body);
+}
+
+.brief-form .publish-bar {
+  align-items: center;
+}
+
+.brief-form .publish-bar p {
+  margin: 0 auto 0 0;
+  max-width: 42ch;
+  color: var(--muted);
+}
+
 .theme-picker {
   border: 0;
   padding: 0;
-  margin: 0 0 var(--s-5);
+  margin: 0;
+  min-inline-size: 0;
 }
 
 .theme-picker legend {
-  font-weight: 600;
-  font-size: var(--text-sm);
-  margin-bottom: var(--s-2);
   padding: 0;
 }
 
 .theme-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--s-3);
 }
 
+@media (max-width: 800px) {
+  .theme-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .theme-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .theme-card {
-  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  grid-template-rows: auto auto auto;
+  align-items: center;
+  column-gap: var(--s-3);
+  row-gap: var(--s-2);
   text-align: left;
-  border: 1px solid var(--line-strong);
+  border: 2px solid var(--line-strong);
   border-radius: var(--r-md);
-  padding: var(--s-3);
-  min-height: 96px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-2);
+  padding: var(--s-4);
+  min-height: 118px;
   box-shadow: var(--shadow-1);
-  transition: transform 120ms var(--ease), box-shadow 150ms var(--ease);
+  font-family: var(--font-display);
+  transition: border-color 150ms var(--ease), box-shadow 150ms var(--ease);
 }
 
 .theme-card:hover {
-  transform: translateY(-1px);
   box-shadow: var(--shadow-2);
 }
 
 .theme-card[aria-pressed="true"] {
-  border: 2px solid var(--ink);
-  padding: calc(var(--s-3) - 1px);
+  border-color: var(--ink);
   box-shadow: var(--shadow-2);
 }
 
 .theme-swatch {
+  grid-column: 1 / -1;
   display: flex;
-  height: 10px;
+  height: 8px;
   border-radius: 999px;
   overflow: hidden;
 }
@@ -898,35 +994,44 @@ button {
 }
 
 .theme-name {
-  font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--text-sm);
-  line-height: 1.2;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
 }
 
 .theme-tags {
+  grid-column: 1 / -1;
+  font-family: var(--font-body);
   font-size: var(--text-xs);
-  opacity: 0.9;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .theme-check {
-  position: absolute;
-  top: var(--s-2);
-  right: var(--s-2);
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: var(--ink);
-  color: #fff;
   display: grid;
   place-items: center;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   line-height: 1;
+  visibility: hidden;
+}
+
+.theme-card[aria-pressed="true"] .theme-check {
+  visibility: visible;
+  background: var(--ink);
+  color: #fff;
 }
 
 .theme-note {
   color: var(--muted);
+  font-family: var(--font-body);
   font-size: var(--text-xs);
+  min-height: 1.6em;
   margin: var(--s-3) 0 0;
 }
 
@@ -1427,22 +1532,6 @@ button {
   font-size: var(--text-xs);
 }
 
-.agent-toggle {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--s-2);
-  font-weight: 600;
-  font-size: var(--text-xs);
-  min-height: 44px;
-}
-
-.agent-toggle input {
-  width: 22px;
-  height: 22px;
-  accent-color: var(--brand);
-}
-
 .agent-log {
   flex: 1;
   overflow-y: auto;
@@ -1615,6 +1704,12 @@ button {
 .agent-mic.is-listening {
   background: #7a2a12;
   border-color: #7a2a12;
+  box-shadow: 0 0 0 4px color-mix(in srgb, #7a2a12 35%, transparent);
+}
+
+.agent-mic.is-holding {
+  background: var(--ink);
+  border-color: var(--ink);
 }
 
 .agent-send {

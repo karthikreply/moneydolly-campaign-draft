@@ -94,13 +94,21 @@ export function BriefForm() {
   }
 
   return (
-    <form className="panel" onSubmit={onSubmit}>
+    <form className="panel brief-form" onSubmit={onSubmit}>
+      <header className="brief-head">
+        <span className="eyebrow">New campaign</span>
+        <h1>Campaign brief</h1>
+        <p>One sentence in the bar, or the fields below. The rules set the goal and the products.</p>
+      </header>
+
       <OmniBar
         busy={busy}
         onDrafted={(draftId) => router.push(`/drafts/${draftId}`)}
         onPartial={onPartial}
       />
 
+      <section className="brief-section" aria-labelledby="brief-program">
+        <h2 id="brief-program">Program</h2>
       <div className="field-row">
         <div className="field">
           <label htmlFor="orgDisplayName">Organization</label>
@@ -130,7 +138,9 @@ export function BriefForm() {
           </select>
         </div>
       </div>
+      </section>
 
+      <section className="brief-section">
       <fieldset id="theme-pack" tabIndex={-1} className="theme-picker">
         <legend>Theme</legend>
         <div className="theme-grid">
@@ -150,15 +160,11 @@ export function BriefForm() {
                   <i style={{ background: theme.colors.backgroundAlt }} />
                   <i style={{ background: theme.colors.ink }} />
                 </span>
-                <span className="theme-name" style={{ fontFamily: theme.fonts.display }}>
-                  {theme.name}
+                <span className="theme-name">{theme.name}</span>
+                <span className="theme-check" aria-hidden="true">
+                  {active ? "✓" : ""}
                 </span>
                 <span className="theme-tags">{theme.productTags.slice(0, 2).join(" · ")}</span>
-                {active ? (
-                  <span className="theme-check" aria-hidden="true">
-                    ✓
-                  </span>
-                ) : null}
                 {active ? <span className="sr-only">Selected</span> : null}
               </button>
             );
@@ -168,7 +174,10 @@ export function BriefForm() {
           {selectedTheme.description} Tone: {selectedTheme.copyTone}.
         </p>
       </fieldset>
+      </section>
 
+      <section className="brief-section" aria-labelledby="brief-roster">
+        <h2 id="brief-roster">Roster and limits</h2>
       <div className="field-row">
         <div className="field">
           <label htmlFor="rosterSize">Roster size</label>
@@ -194,7 +203,10 @@ export function BriefForm() {
           <span className="hint">Keyword filters only. We tell you when nothing matched.</span>
         </div>
       </div>
+      </section>
 
+      <section className="brief-section" aria-labelledby="brief-when">
+        <h2 id="brief-when">Dates</h2>
       <div className="field-row">
         <div className="field">
           <label htmlFor="windowStart">Starts</label>
@@ -220,6 +232,7 @@ export function BriefForm() {
           />
         </div>
       </div>
+      </section>
 
       {error ? (
         <p className="error" role="alert">
@@ -228,6 +241,7 @@ export function BriefForm() {
       ) : null}
 
       <div className="publish-bar">
+        <p>Goal and products come from the rules. You approve the words next.</p>
         <button className="btn" type="submit" disabled={busy}>
           {busy ? "Drafting…" : "Build draft"}
         </button>

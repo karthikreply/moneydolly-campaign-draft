@@ -17,13 +17,17 @@ import { useOperator } from "../OperatorProvider";
 
 type Message = { id: string; role: "agent" | "user"; text: string };
 
-type SpeechResult = { results: ArrayLike<ArrayLike<{ transcript: string }>> };
+type SpeechAlt = { transcript: string };
+type SpeechResult = {
+  resultIndex: number;
+  results: ArrayLike<ArrayLike<SpeechAlt> & { isFinal: boolean }>;
+};
 type SpeechRec = {
   lang: string;
   interimResults: boolean;
   continuous: boolean;
   onresult: ((event: SpeechResult) => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
   onend: (() => void) | null;
   start: () => void;
   stop: () => void;
@@ -39,10 +43,14 @@ function createRecognizer(): SpeechRec | null {
   if (!Ctor) return null;
   const rec = new Ctor();
   rec.lang = "en-US";
-  rec.interimResults = false;
-  rec.continuous = false;
+  rec.interimResults = true;
+  rec.continuous = true;
   return rec;
 }
+
+const LISTENING_NOTE =
+  "Listening. Speak, then pause. I answer and keep listening — press Stop when you're done.";
+const ANSWERING_NOTE = "Answering. I'll listen again when I finish. Press Stop to end.";
 
 function uid(): string {
   return globalThis.crypto.randomUUID();
@@ -59,7 +67,7 @@ export function CampaignAgent({ catalog }: { catalog: CatalogSku[] }) {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [listening, setListening] = useState(false);
-  const [speak, setSpeak] = useState(true);
+  const [sessionOn, setSessionOn] = useState(false);
   const [micNote, setMicNote] = useState<string | null>(null);
   const [draft, setDraft] = useState<CampaignDraft | null>(null);
   const [published, setPublished] = useState<{ campaign: PublishedCampaign; roster: Participant[] } | null>(null);
@@ -67,34 +75,35 @@ export function CampaignAgent({ catalog }: { catalog: CatalogSku[] }) {
   const recognizer = useRef<SpeechRec | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const speakRef = useRef(speak);
-  speakRef.current = speak;
+  const engagedRef = useRef(false);
+  const holdRef = useRef(false);
+  const busyRef = useRef(false);
+  const resumeRef = useRef<() => void>(() => {});
+  const sendRef = useRef<(raw: string) => void>(() => {});
+  const utteranceRef = useRef("");
+  const silenceRef = useRef<number | null>(null);
+  const onSpeechRef = useRef<(event: SpeechResult) => void>(() => {});
+  busyRef.current = busy;
 
-  const say = useCallback(
-    (text: string) => {
-      if (!speakRef.current || typeof window === "undefined" || !("speechSynthesis" in window)) return;
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = operator.assistant.voice.rate;
-      utterance.pitch = operator.assistant.voice.pitch;
-      utterance.lang = "en-US";
-      window.speechSynthesis.speak(utterance);
-    },
-    [operator.assistant.voice.pitch, operator.assistant.voice.rate],
-  );
-
-  const pushAgent = useCallback(
-    (result: AgentStepResult) => {
-      setMessages((prev) => [...prev, { id: uid(), role: "agent", text: result.reply }]);
-      setSuggestions(result.suggestions);
-      setState(result.state);
-      say(result.reply);
-    },
-    [say],
-  );
+  const pushAgent = useCallback((result: AgentStepResult) => {
+    setMessages((prev) => [...prev, { id: uid(), role: "agent", text: result.reply }]);
+    setSuggestions(result.suggestions);
+    setState(result.state);
+    return Promise.resolve();
+  }, []);
 
   // Greet on mount and whenever the vendor changes: the agent re-introduces itself in the new brand.
   useEffect(() => {
+    engagedRef.current = false;
+    holdRef.current = false;
+    try {
+      recognizer.current?.stop();
+    } catch {
+      /* already stopped */
+    }
+    setListening(false);
+    setSessionOn(false);
+    setMicNote(null);
     const hello = greeting(persona, operator.assistant.greeting);
     setMessages([{ id: uid(), role: "agent", text: hello.reply }]);
     setSuggestions(hello.suggestions);
@@ -109,8 +118,12 @@ export function CampaignAgent({ catalog }: { catalog: CatalogSku[] }) {
   }, [messages.length]);
 
   useEffect(() => () => {
-    recognizer.current?.stop();
-    if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
+    engagedRef.current = false;
+    try {
+      recognizer.current?.stop();
+    } catch {
+      /* already stopped */
+    }
   }, []);
 
   async function runAction(result: AgentStepResult) {
@@ -136,7 +149,7 @@ export function CampaignAgent({ catalog }: { catalog: CatalogSku[] }) {
         const data = (await res.json()) as CampaignDraft & { error?: string };
         if (!res.ok) throw new Error(data.error ?? "Could not create the draft");
         setDraft(data);
-        pushAgent(draftReadyReply(result.state, data));
+        await pushAgent(draftReadyReply(result.state, data));
       } else if (action.type === "publish") {
         const res = await fetch(`/api/drafts/${action.draftId}/publish`, { method: "POST" });
         const data = (await res.json()) as {
@@ -147,53 +160,163 @@ export function CampaignAgent({ catalog }: { catalog: CatalogSku[] }) {
         };
         if (!res.ok) throw new Error(data.error ?? "Publish failed");
         setPublished({ campaign: data.campaign, roster: data.roster ?? [] });
-        pushAgent(publishedReply(result.state, data.campaign, data.roster?.length ?? 0));
+        await pushAgent(publishedReply(result.state, data.campaign, data.roster?.length ?? 0));
       }
     } catch (err) {
       const text = err instanceof Error ? err.message : "Something went wrong";
-      pushAgent({ state: result.state, reply: `${text}. Try again, or say start over.`, suggestions: ["Start over"] });
+      await pushAgent({ state: result.state, reply: `${text}. Try again, or say start over.`, suggestions: ["Start over"] });
     } finally {
       setBusy(false);
     }
   }
 
-  async function send(raw: string) {
-    const text = raw.trim();
-    if (!text || busy) return;
-    setInput("");
-    setMessages((prev) => [...prev, { id: uid(), role: "user", text }]);
-    const result = agentStep(state, text, persona);
-    pushAgent(result);
-    await runAction(result);
-    inputRef.current?.focus();
+  function clearSilence() {
+    if (silenceRef.current !== null) {
+      window.clearTimeout(silenceRef.current);
+      silenceRef.current = null;
+    }
   }
 
-  function toggleMic() {
-    const rec = recognizer.current ?? createRecognizer();
+  function commitHeard() {
+    clearSilence();
+    const heard = utteranceRef.current.trim();
+    utteranceRef.current = "";
+    if (!heard || holdRef.current || !engagedRef.current) return;
+    holdRef.current = true;
+    setInput("");
+    setListening(false);
+    setMicNote(ANSWERING_NOTE);
+    try {
+      recognizer.current?.stop();
+    } catch {
+      /* already stopped */
+    }
+    sendRef.current(heard);
+  }
+
+  function endSession() {
+    engagedRef.current = false;
+    holdRef.current = false;
+    utteranceRef.current = "";
+    clearSilence();
+    setSessionOn(false);
+    setListening(false);
+    setMicNote(null);
+    try {
+      recognizer.current?.stop();
+    } catch {
+      /* already stopped */
+    }
+  }
+
+  function resumeListening() {
+    if (!engagedRef.current || holdRef.current) return;
+    const rec = ensureRecognizer();
+    if (!rec) return;
+    try {
+      rec.start();
+    } catch {
+      /* already running */
+    }
+    setListening(true);
+    setMicNote(LISTENING_NOTE);
+  }
+  resumeRef.current = resumeListening;
+
+  function ensureRecognizer(): SpeechRec | null {
+    if (recognizer.current) return recognizer.current;
+    const rec = createRecognizer();
     if (!rec) {
       setMicNote("This browser has no speech input. Type your answer instead.");
       inputRef.current?.focus();
-      return;
+      return null;
     }
+    rec.onresult = (event) => onSpeechRef.current(event);
+    rec.onerror = (event) => {
+      const code = event.error ?? "";
+      if (code === "aborted" || code === "no-speech") return;
+      engagedRef.current = false;
+      holdRef.current = false;
+      setSessionOn(false);
+      setListening(false);
+      setMicNote(
+        code === "not-allowed"
+          ? "Allow the microphone for this site, or type your answer."
+          : "I couldn't use the microphone. Type your answer instead.",
+      );
+      inputRef.current?.focus();
+    };
+    rec.onend = () => {
+      setListening(false);
+      window.setTimeout(() => resumeRef.current(), 300);
+    };
     recognizer.current = rec;
-    if (listening) {
-      rec.stop();
+    return rec;
+  }
+
+  async function send(raw: string) {
+    const text = raw.trim();
+    if (!text || busyRef.current) return;
+    const keepListening = engagedRef.current;
+    if (keepListening) {
+      holdRef.current = true;
       setListening(false);
+      setMicNote(ANSWERING_NOTE);
+      try {
+        recognizer.current?.stop();
+      } catch {
+        /* already stopped */
+      }
+    }
+    setInput("");
+    setMessages((prev) => [...prev, { id: uid(), role: "user", text }]);
+    const result = agentStep(state, text, persona);
+    const spoken = pushAgent(result);
+    await runAction(result);
+    await spoken;
+    if (keepListening) {
+      holdRef.current = false;
+      if (engagedRef.current) resumeListening();
+    }
+    inputRef.current?.focus();
+  }
+  sendRef.current = (raw) => {
+    void send(raw);
+  };
+  onSpeechRef.current = (event) => {
+    if (holdRef.current || busyRef.current || !engagedRef.current) return;
+    let finalText = "";
+    let interim = "";
+    for (let i = 0; i < event.results.length; i += 1) {
+      const chunk = event.results[i]?.[0]?.transcript ?? "";
+      if (event.results[i]?.isFinal) finalText += chunk;
+      else interim += chunk;
+    }
+    const live = `${finalText} ${interim}`.trim();
+    if (!live) return;
+    utteranceRef.current = live;
+    setInput(live);
+    clearSilence();
+    silenceRef.current = window.setTimeout(() => commitHeard(), 1300);
+  };
+
+  function toggleMic() {
+    if (engagedRef.current) {
+      endSession();
       return;
     }
-    if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
-    rec.onresult = (event) => {
-      const transcript = event.results[0]?.[0]?.transcript ?? "";
-      if (transcript) void send(transcript);
-    };
-    rec.onerror = () => {
-      setListening(false);
-      setMicNote("Didn't catch that. Tap the mic again or type.");
-    };
-    rec.onend = () => setListening(false);
-    setMicNote(null);
+    const rec = ensureRecognizer();
+    if (!rec) return;
+    engagedRef.current = true;
+    holdRef.current = false;
+    setSessionOn(true);
+    try {
+      rec.start();
+    } catch {
+      /* already running */
+    }
     setListening(true);
-    rec.start();
+    setMicNote(LISTENING_NOTE);
   }
 
   const draftSkus = draft ? catalog.filter((sku) => draft.skuIds.includes(sku.id)) : [];
@@ -210,10 +333,6 @@ export function CampaignAgent({ catalog }: { catalog: CatalogSku[] }) {
           <h1 className="agent-title">{persona.name}</h1>
           <p className="agent-subtitle">{operator.operatorName} campaign assistant</p>
         </div>
-        <label className="agent-toggle">
-          <input type="checkbox" checked={speak} onChange={(e) => setSpeak(e.target.checked)} />
-          Read replies aloud
-        </label>
       </header>
 
       <div className="agent-log" ref={logRef} role="log" aria-live="polite" aria-relevant="additions">
@@ -295,13 +414,17 @@ export function CampaignAgent({ catalog }: { catalog: CatalogSku[] }) {
       >
         <button
           type="button"
-          className={`agent-mic${listening ? " is-listening" : ""}`}
-          aria-pressed={listening}
-          aria-label={listening ? "Stop listening" : "Push to talk"}
+          className={`agent-mic${listening ? " is-listening" : ""}${sessionOn && !listening ? " is-holding" : ""}`}
+          aria-pressed={sessionOn}
+          aria-label={
+            sessionOn
+              ? "Stop the conversation"
+              : "Start talking. I keep listening until you press Stop."
+          }
           onClick={toggleMic}
-          disabled={busy}
+          disabled={busy && !sessionOn}
         >
-          {listening ? "Listening…" : "Talk"}
+          {sessionOn ? (listening ? "Listening…" : "Stop") : "Talk"}
         </button>
         <input
           ref={inputRef}

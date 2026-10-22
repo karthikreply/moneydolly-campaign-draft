@@ -6,6 +6,7 @@ node_modules/
 *.sqlite-shm
 dist/
 coverage/
+*.tsbuildinfo
 .env*
 !.env.example
 *.log
