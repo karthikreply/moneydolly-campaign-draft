@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
+import { THEME_LIST, type ThemeKey } from "@/domain/campaign-draft/theme-packs";
 
 const SPORTS = [
   { value: "volleyball", label: "Volleyball" },
@@ -14,6 +15,12 @@ export function BriefForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [themeKey, setThemeKey] = useState<ThemeKey>("classic_season");
+
+  const selectedTheme = useMemo(
+    () => THEME_LIST.find((t) => t.key === themeKey)!,
+    [themeKey],
+  );
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -27,6 +34,7 @@ export function BriefForm() {
       windowEnd: String(fd.get("windowEnd")),
       rosterSize: Number(fd.get("rosterSize")),
       note: String(fd.get("note") ?? ""),
+      themeKey,
     };
 
     try {
@@ -50,7 +58,8 @@ export function BriefForm() {
         Campaign brief
       </h2>
       <p className="muted">
-        Rules set the goal and offers. AI drafts copy only. You publish.
+        Pick a theme pack (look + SKUs + copy tone). Rules set numbers; AI drafts
+        copy. You publish.
       </p>
 
       <div className="field">
@@ -73,6 +82,59 @@ export function BriefForm() {
           ))}
         </select>
       </div>
+
+      <fieldset style={{ border: "1px solid var(--line)", borderRadius: 6, padding: "0.75rem 1rem", marginBottom: "1rem" }}>
+        <legend style={{ fontWeight: 600, fontSize: "0.85rem" }}>
+          Campaign theme pack
+        </legend>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+            gap: "0.65rem",
+          }}
+        >
+          {THEME_LIST.map((theme) => {
+            const active = theme.key === themeKey;
+            return (
+              <button
+                key={theme.key}
+                type="button"
+                onClick={() => setThemeKey(theme.key)}
+                style={{
+                  textAlign: "left",
+                  border: active
+                    ? `2px solid ${theme.colors.accent}`
+                    : "1px solid var(--line)",
+                  borderRadius: 6,
+                  padding: "0.65rem",
+                  background: theme.colors.background,
+                  color: theme.colors.ink,
+                  cursor: "pointer",
+                }}
+              >
+                <div
+                  style={{
+                    height: 8,
+                    borderRadius: 4,
+                    background: theme.colors.accent,
+                    marginBottom: 8,
+                  }}
+                />
+                <div style={{ fontFamily: theme.fonts.display, fontSize: "0.95rem" }}>
+                  {theme.name}
+                </div>
+                <div style={{ fontSize: "0.75rem", opacity: 0.8, marginTop: 4 }}>
+                  {theme.productTags.slice(0, 2).join(" · ")}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+        <p className="muted" style={{ marginBottom: 0, marginTop: "0.75rem", fontSize: "0.85rem" }}>
+          {selectedTheme.description} · tone: {selectedTheme.copyTone}
+        </p>
+      </fieldset>
 
       <div className="field">
         <label htmlFor="rosterSize">Roster size</label>

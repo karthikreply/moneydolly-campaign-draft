@@ -1,3 +1,4 @@
+import { resolveThemePack } from "./theme-packs";
 import type { CampaignBrief, CatalogSku, CopyResult, CopyStatus } from "./types";
 
 export interface LlmCopyPayload {
@@ -19,11 +20,12 @@ const MAX = {
 };
 
 export function fallbackCopy(brief: CampaignBrief, goalCents: number): CopyResult {
+  const theme = resolveThemePack(brief.themeKey);
   const goal = `$${(goalCents / 100).toLocaleString("en-US")}`;
   return {
-    headline: `Help ${brief.orgDisplayName} hit ${goal}`,
-    supportingLine: `Support our ${brief.sport} season — every gift moves the team closer to the goal.`,
-    whyDraft: "Fallback copy used because AI copy was unavailable.",
+    headline: `${theme.headlineVerb} ${brief.orgDisplayName}`,
+    supportingLine: `Support our ${brief.sport} ${theme.name.toLowerCase()} — every gift moves the team closer to ${goal}.`,
+    whyDraft: `Fallback copy (${theme.name} tone) — AI copy was unavailable.`,
     copyStatus: "fallback",
   };
 }
@@ -45,10 +47,17 @@ function buildPrompt(
   goalCents: number,
   skuNames: string[],
 ): string {
+  const theme = resolveThemePack(brief.themeKey);
   return JSON.stringify({
     org: brief.orgDisplayName,
     sport: brief.sport,
     goalCents,
+    theme: {
+      key: theme.key,
+      name: theme.name,
+      tone: theme.copyTone,
+      headlineVerb: theme.headlineVerb,
+    },
     window: { start: brief.windowStart, end: brief.windowEnd },
     skus: skuNames,
     note: brief.note,
@@ -63,12 +72,13 @@ export class TemplateLlmClient implements LlmClient {
       org: string;
       sport: string;
       goalCents: number;
+      theme: { name: string; tone: string; headlineVerb: string };
     };
     const goal = `$${(data.goalCents / 100).toLocaleString("en-US")}`;
     return {
-      headline: `Rally for ${data.org}`,
-      supportingLine: `Our ${data.sport} program is raising ${goal} this season. Shop or donate to help.`,
-      whyDraft: "Drafted from sport, goal, and selected offers — edit freely before publish.",
+      headline: `${data.theme.headlineVerb} ${data.org}`,
+      supportingLine: `${data.theme.name}: our ${data.sport} program is raising ${goal}. Shop or donate to help.`,
+      whyDraft: `Drafted with ${data.theme.name} tone (${data.theme.tone}). Edit freely before publish.`,
     };
   }
 }

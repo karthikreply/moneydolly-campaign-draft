@@ -9,6 +9,8 @@ export interface CampaignBrief {
   rosterSize: number;
   note: string;
   orgDisplayName: string;
+  /** Full theme pack key — colors, fonts, SKU tags, copy tone */
+  themeKey: string;
 }
 
 export interface CatalogSku {

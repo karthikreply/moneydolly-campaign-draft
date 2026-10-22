@@ -11,6 +11,7 @@ const briefBase = {
   rosterSize: 20,
   note: "",
   orgDisplayName: "Lincoln VB",
+  themeKey: "classic_season",
 };
 
 describe("runDraftRules", () => {

@@ -9,6 +9,15 @@ const briefSchema = z.object({
   rosterSize: z.number().int().min(1),
   note: z.string().default(""),
   orgDisplayName: z.string().min(1),
+  themeKey: z
+    .enum([
+      "classic_season",
+      "spirit_week",
+      "spring_classic",
+      "championship_push",
+      "night_lights",
+    ])
+    .default("classic_season"),
 });
 
 export async function POST(req: Request) {

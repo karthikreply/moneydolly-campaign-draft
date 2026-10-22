@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { resolveThemePack } from "@/domain/campaign-draft/theme-packs";
 import type { CampaignDraft, CatalogSku } from "@/domain/campaign-draft/types";
 import { NoteFilterBadge } from "./NoteFilterBadge";
 import { PublishBar } from "./PublishBar";
@@ -23,6 +24,7 @@ export function DraftReviewSplit({
   );
 
   const canPublish = draft.headline.trim().length > 0 && draft.status === "draft";
+  const theme = resolveThemePack(draft.brief.themeKey);
 
   const selectedSkus = useMemo(
     () => catalog.filter((s) => draft.skuIds.includes(s.id)),
@@ -76,6 +78,12 @@ export function DraftReviewSplit({
         }}
       >
         <NoteFilterBadge filter={draft.noteFilter} />
+        <span
+          className="badge badge-active"
+          style={{ borderColor: theme.colors.accent, color: theme.colors.accent }}
+        >
+          Theme: {theme.name}
+        </span>
         <span className="badge">Preset v{draft.presetVersion}</span>
         <span className="badge">Copy: {draft.copyStatus}</span>
         {publishedId ? (

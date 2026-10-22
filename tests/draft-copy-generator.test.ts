@@ -13,6 +13,7 @@ const brief = {
   rosterSize: 20,
   note: "",
   orgDisplayName: "Lincoln VB",
+  themeKey: "classic_season",
 };
 
 describe("generateDraftCopy", () => {

@@ -17,7 +17,7 @@ export const STUB_CATALOG: CatalogSku[] = [
     retailCents: 2200,
     groupCreditCents: 800,
     shipHandlingCents: 499,
-    tags: ["volleyball", "apparel"],
+    tags: ["volleyball", "apparel", "spirit"],
     kind: "product",
   },
   {
@@ -26,7 +26,7 @@ export const STUB_CATALOG: CatalogSku[] = [
     retailCents: 4500,
     groupCreditCents: 1400,
     shipHandlingCents: 699,
-    tags: ["volleyball", "apparel"],
+    tags: ["volleyball", "apparel", "night", "championship"],
     kind: "product",
   },
   {
@@ -35,7 +35,7 @@ export const STUB_CATALOG: CatalogSku[] = [
     retailCents: 2800,
     groupCreditCents: 900,
     shipHandlingCents: 599,
-    tags: ["volleyball", "gear"],
+    tags: ["volleyball", "gear", "spring", "championship"],
     kind: "product",
   },
   {
@@ -44,7 +44,7 @@ export const STUB_CATALOG: CatalogSku[] = [
     retailCents: 1200,
     groupCreditCents: 400,
     shipHandlingCents: 399,
-    tags: ["volleyball", "merch"],
+    tags: ["volleyball", "merch", "spirit", "night"],
     kind: "product",
   },
   {
@@ -53,7 +53,7 @@ export const STUB_CATALOG: CatalogSku[] = [
     retailCents: 2200,
     groupCreditCents: 800,
     shipHandlingCents: 499,
-    tags: ["basketball", "apparel"],
+    tags: ["basketball", "apparel", "spirit"],
     kind: "product",
   },
   {
@@ -62,7 +62,7 @@ export const STUB_CATALOG: CatalogSku[] = [
     retailCents: 4500,
     groupCreditCents: 1400,
     shipHandlingCents: 699,
-    tags: ["basketball", "apparel"],
+    tags: ["basketball", "apparel", "night", "championship"],
     kind: "product",
   },
   {
@@ -71,7 +71,7 @@ export const STUB_CATALOG: CatalogSku[] = [
     retailCents: 3200,
     groupCreditCents: 1000,
     shipHandlingCents: 599,
-    tags: ["basketball", "gear"],
+    tags: ["basketball", "gear", "championship"],
     kind: "product",
   },
   {
@@ -80,7 +80,7 @@ export const STUB_CATALOG: CatalogSku[] = [
     retailCents: 1800,
     groupCreditCents: 600,
     shipHandlingCents: 399,
-    tags: ["soccer", "apparel"],
+    tags: ["soccer", "apparel", "spirit", "night"],
     kind: "product",
   },
   {
@@ -89,7 +89,7 @@ export const STUB_CATALOG: CatalogSku[] = [
     retailCents: 3000,
     groupCreditCents: 950,
     shipHandlingCents: 599,
-    tags: ["soccer", "gear"],
+    tags: ["soccer", "gear", "spring", "championship"],
     kind: "product",
   },
   {
@@ -98,7 +98,7 @@ export const STUB_CATALOG: CatalogSku[] = [
     retailCents: 1500,
     groupCreditCents: 500,
     shipHandlingCents: 399,
-    tags: ["generic", "gear"],
+    tags: ["generic", "gear", "spring"],
     kind: "product",
   },
   {
@@ -107,7 +107,25 @@ export const STUB_CATALOG: CatalogSku[] = [
     retailCents: 800,
     groupCreditCents: 300,
     shipHandlingCents: 299,
-    tags: ["generic", "merch"],
+    tags: ["generic", "merch", "spirit"],
+    kind: "product",
+  },
+  {
+    id: "sku_night_glow",
+    name: "Glow Sideline Band",
+    retailCents: 1400,
+    groupCreditCents: 450,
+    shipHandlingCents: 399,
+    tags: ["generic", "merch", "night"],
+    kind: "product",
+  },
+  {
+    id: "sku_champ_towel",
+    name: "Championship Towel",
+    retailCents: 1600,
+    groupCreditCents: 550,
+    shipHandlingCents: 399,
+    tags: ["generic", "merch", "championship"],
     kind: "product",
   },
 ];

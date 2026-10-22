@@ -45,10 +45,12 @@ describe("CampaignDraftService", () => {
         rosterSize: 12,
         note: "under $25",
         orgDisplayName: "Lincoln VB",
+        themeKey: "spirit_week",
       },
     });
 
     expect(draft.status).toBe("draft");
+    expect(draft.brief.themeKey).toBe("spirit_week");
     expect(draft.presetVersion).toBeGreaterThanOrEqual(1);
     expect(draft.noteFilter.type).toBe("max_price");
 
@@ -83,6 +85,7 @@ describe("CampaignDraftService", () => {
         rosterSize: 10,
         note: "",
         orgDisplayName: "Tigers",
+        themeKey: "night_lights",
       },
     });
     svc.updateDraft("op1", draft.id, { headline: "   " });

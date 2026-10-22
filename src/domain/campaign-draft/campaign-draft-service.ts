@@ -11,6 +11,7 @@ import {
   type PresetUpsertInput,
 } from "./sport-presets";
 import { STUB_CATALOG } from "./stub-catalog";
+import { isThemeKey, resolveThemePack } from "./theme-packs";
 import type {
   CampaignBrief,
   CampaignDraft,
@@ -25,13 +26,19 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+function normalizeBrief(raw: CampaignBrief): CampaignBrief {
+  const themeKey = isThemeKey(raw.themeKey) ? raw.themeKey : "classic_season";
+  return { ...raw, themeKey };
+}
+
 function rowToDraft(row: Record<string, unknown>): CampaignDraft {
+  const brief = normalizeBrief(JSON.parse(row.brief_json as string) as CampaignBrief);
   return {
     id: row.id as string,
     operatorId: row.operator_id as string,
     orgId: row.org_id as string,
     createdBy: row.created_by as string,
-    brief: JSON.parse(row.brief_json as string) as CampaignBrief,
+    brief,
     presetId: row.preset_id as string,
     presetVersion: row.preset_version as number,
     goalCents: row.goal_cents as number,
@@ -143,18 +150,21 @@ export class CampaignDraftService {
       throw new Error("rosterSize must be >= 1");
     }
 
+    const brief = normalizeBrief(input.brief);
+    resolveThemePack(brief.themeKey);
+
     const preset = resolveSportPreset(
       this.presetStore,
       input.operatorId,
-      input.brief.sport,
+      brief.sport,
     );
     const rules = runDraftRules({
-      brief: input.brief,
+      brief,
       preset,
       catalog: this.catalog,
     });
     const copy = await generateDraftCopy({
-      brief: input.brief,
+      brief,
       goalCents: rules.goalCents,
       catalog: this.catalog,
       skuIds: rules.skuIds,
@@ -181,7 +191,7 @@ export class CampaignDraftService {
         operator_id: input.operatorId,
         org_id: input.orgId,
         created_by: input.createdBy,
-        brief_json: JSON.stringify(input.brief),
+        brief_json: JSON.stringify(brief),
         preset_id: preset.id,
         preset_version: preset.version,
         goal_cents: rules.goalCents,
