@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: moneydolly-campaign-draft
+    runtime: docker
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DRAFT_DB_PATH
+        value: /tmp/campaign-draft.sqlite
