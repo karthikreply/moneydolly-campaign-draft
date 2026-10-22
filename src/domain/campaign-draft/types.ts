@@ -98,8 +98,69 @@ export interface PublishedCampaign {
   operatorId: string;
   orgId: string;
   name: string;
+  slug: string;
+  headline: string;
+  supportingLine: string;
+  themeKey: string;
+  orgDisplayName: string;
+  endsAt: string;
   goalCents: number;
   surfaceOrder: SurfaceOrder;
   status: "active";
   offerProductIds: string[];
+}
+
+export interface Participant {
+  id: string;
+  campaignId: string;
+  orgId: string;
+  displayName: string;
+  slug: string;
+  goalCents: number;
+  isMinor: boolean;
+}
+
+export interface OrderLineInput {
+  productId: string;
+  qty: number;
+}
+
+export interface CheckoutInput {
+  campaignSlug: string;
+  participantSlug: string | null;
+  supporterName: string;
+  supporterEmail: string;
+  lines: OrderLineInput[];
+  donationCents: number;
+}
+
+export interface CheckoutQuote {
+  subtotalCents: number;
+  shippingCents: number;
+  totalCents: number;
+  goalCreditCents: number;
+  donationCents: number;
+  donationFeeCents: number;
+  lines: Array<{
+    productId: string;
+    name: string;
+    qty: number;
+    unitCents: number;
+    groupCreditCents: number;
+  }>;
+}
+
+export interface PlacedOrder {
+  id: string;
+  campaignId: string;
+  participantId: string | null;
+  totalCents: number;
+  goalCreditCents: number;
+  status: "paid_mock";
+}
+
+export interface CampaignProgress {
+  raisedCents: number;
+  goalCents: number;
+  orderCount: number;
 }

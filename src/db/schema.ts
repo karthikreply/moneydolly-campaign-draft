@@ -61,5 +61,67 @@ export function migrate(db: Database.Database): void {
       product_id TEXT NOT NULL,
       sort_order INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS participants (
+      id TEXT PRIMARY KEY,
+      campaign_id TEXT NOT NULL,
+      org_id TEXT NOT NULL,
+      display_name TEXT NOT NULL,
+      slug TEXT NOT NULL,
+      goal_cents INTEGER NOT NULL,
+      is_minor INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS ux_participants_campaign_slug
+      ON participants(campaign_id, slug);
+
+    CREATE TABLE IF NOT EXISTS orders (
+      id TEXT PRIMARY KEY,
+      campaign_id TEXT NOT NULL,
+      participant_id TEXT,
+      supporter_name TEXT NOT NULL,
+      supporter_email TEXT NOT NULL,
+      subtotal_cents INTEGER NOT NULL,
+      shipping_cents INTEGER NOT NULL,
+      total_cents INTEGER NOT NULL,
+      goal_credit_cents INTEGER NOT NULL,
+      status TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS order_lines (
+      id TEXT PRIMARY KEY,
+      order_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      product_id TEXT,
+      qty INTEGER NOT NULL,
+      unit_cents INTEGER NOT NULL,
+      group_credit_cents INTEGER NOT NULL
+    );
   `);
+
+  const campaignColumns = db
+    .prepare(`PRAGMA table_info(campaigns)`)
+    .all() as { name: string }[];
+  const names = new Set(campaignColumns.map((column) => column.name));
+  if (!names.has("slug")) {
+    db.exec(`ALTER TABLE campaigns ADD COLUMN slug TEXT`);
+  }
+  if (!names.has("headline")) {
+    db.exec(`ALTER TABLE campaigns ADD COLUMN headline TEXT`);
+  }
+  if (!names.has("supporting_line")) {
+    db.exec(`ALTER TABLE campaigns ADD COLUMN supporting_line TEXT`);
+  }
+  if (!names.has("theme_key")) {
+    db.exec(`ALTER TABLE campaigns ADD COLUMN theme_key TEXT`);
+  }
+  if (!names.has("org_display_name")) {
+    db.exec(`ALTER TABLE campaigns ADD COLUMN org_display_name TEXT`);
+  }
+  if (!names.has("ends_at")) {
+    db.exec(`ALTER TABLE campaigns ADD COLUMN ends_at TEXT`);
+  }
+  db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS ux_campaigns_slug ON campaigns(slug)`);
 }

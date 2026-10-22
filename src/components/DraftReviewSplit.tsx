@@ -3,7 +3,12 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { resolveThemePack } from "@/domain/campaign-draft/theme-packs";
-import type { CampaignDraft, CatalogSku } from "@/domain/campaign-draft/types";
+import type {
+  CampaignDraft,
+  CatalogSku,
+  Participant,
+  PublishedCampaign,
+} from "@/domain/campaign-draft/types";
 import { feeRateToBps } from "@/domain/operators";
 import { NoteFilterBadge } from "./NoteFilterBadge";
 import { ParticipantAppPreview } from "./ParticipantAppPreview";
@@ -14,9 +19,13 @@ import { useOperator } from "./OperatorProvider";
 export function DraftReviewSplit({
   initialDraft,
   catalog,
+  initialCampaign,
+  initialRoster,
 }: {
   initialDraft: CampaignDraft;
   catalog: CatalogSku[];
+  initialCampaign?: PublishedCampaign | null;
+  initialRoster?: Participant[];
 }) {
   const router = useRouter();
   const { operator } = useOperator();
@@ -26,6 +35,10 @@ export function DraftReviewSplit({
   const [publishedId, setPublishedId] = useState<string | null>(
     initialDraft.campaignId,
   );
+  const [published, setPublished] = useState<PublishedCampaign | null>(
+    initialCampaign ?? null,
+  );
+  const [roster, setRoster] = useState<Participant[]>(initialRoster ?? []);
 
   const canPublish = draft.headline.trim().length > 0 && draft.status === "draft";
   const theme = resolveThemePack(draft.brief.themeKey);
@@ -70,6 +83,8 @@ export function DraftReviewSplit({
       if (!res.ok) throw new Error(data.error ?? "Publish failed");
       setDraft(data.draft);
       setPublishedId(data.campaign.id);
+      setPublished(data.campaign);
+      setRoster(data.roster ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Publish failed");
     } finally {
@@ -195,13 +210,41 @@ export function DraftReviewSplit({
         </div>
       </div>
 
-      {publishedId ? (
-        <p style={{ marginTop: "1rem" }}>
-          Campaign live in DB.{" "}
-          <button className="btn btn-secondary" type="button" onClick={() => router.push("/drafts/new")}>
-            Start another
-          </button>
-        </p>
+      {publishedId && published ? (
+        <div className="share-links">
+          <h3>Campaign is live. Share these links.</h3>
+          <p className="muted" style={{ margin: 0, fontSize: "0.9rem" }}>
+            Supporters open these to shop or donate. Fees shown use {operator.operatorName}
+            &apos;s rate; player links credit that player&apos;s personal goal.
+          </p>
+          <ul>
+            <li>
+              Team page:{" "}
+              <a href={`/c/${published.slug}?op=${operator.id}`} target="_blank" rel="noreferrer">
+                <code>/c/{published.slug}</code>
+              </a>
+            </li>
+            {roster.map((p) => (
+              <li key={p.id}>
+                {p.displayName}:{" "}
+                <a
+                  href={`/c/${published.slug}/${p.slug}?op=${operator.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <code>
+                    /c/{published.slug}/{p.slug}
+                  </code>
+                </a>
+              </li>
+            ))}
+          </ul>
+          <p style={{ marginTop: "0.75rem", marginBottom: 0 }}>
+            <button className="btn btn-secondary" type="button" onClick={() => router.push("/drafts/new")}>
+              Start another
+            </button>
+          </p>
+        </div>
       ) : null}
     </div>
   );

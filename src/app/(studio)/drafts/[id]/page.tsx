@@ -13,10 +13,19 @@ export default async function DraftReviewPage({
   const svc = getCampaignDraftService();
   const draft = svc.getDraft(DEMO.operatorId, id);
   if (!draft) notFound();
+  const campaign = draft.campaignId
+    ? svc.getCampaign(DEMO.operatorId, draft.campaignId)
+    : null;
+  const roster = campaign ? svc.listParticipants(campaign.id) : [];
 
   return (
     <main>
-      <DraftReviewSplit initialDraft={draft} catalog={svc.getCatalog()} />
+      <DraftReviewSplit
+        initialDraft={draft}
+        catalog={svc.getCatalog()}
+        initialCampaign={campaign}
+        initialRoster={roster}
+      />
     </main>
   );
 }

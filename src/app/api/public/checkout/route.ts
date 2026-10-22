@@ -1,0 +1,41 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { feeRateToBps, findOperator } from "@/domain/operators";
+import { getCampaignDraftService } from "@/lib/service";
+
+const schema = z.object({
+  campaignSlug: z.string().min(1),
+  participantSlug: z.string().min(1).nullable(),
+  operatorId: z.string().min(1),
+  supporterName: z.string().min(1),
+  supporterEmail: z.string().min(3),
+  lines: z.array(z.object({ productId: z.string().min(1), qty: z.number().int().min(0) })),
+  donationCents: z.number().int().min(0),
+  mode: z.enum(["quote", "pay"]).default("quote"),
+});
+
+/**
+ * Mock checkout. No card fields are posted here; a production build redirects to
+ * Stripe Checkout and records the order from the webhook instead.
+ */
+export async function POST(req: Request) {
+  const parsed = schema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid checkout payload" }, { status: 400 });
+  }
+  const { mode, operatorId, ...input } = parsed.data;
+  const bps = feeRateToBps(findOperator(operatorId).customFeeRate);
+  const svc = getCampaignDraftService();
+  try {
+    if (mode === "quote") {
+      return NextResponse.json({ quote: svc.quote(input, bps) });
+    }
+    const order = svc.placeOrder(input, bps);
+    const progress = svc.getProgress(order.campaignId, order.participantId);
+    return NextResponse.json({ order, progress }, { status: 201 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Checkout failed";
+    const status = message.includes("not found") ? 404 : 400;
+    return NextResponse.json({ error: message }, { status });
+  }
+}

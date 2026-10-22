@@ -14,15 +14,32 @@ import {
 } from "./sport-presets";
 import { STUB_CATALOG } from "./stub-catalog";
 import { isThemeKey, resolveThemePack } from "./theme-packs";
+import { quoteCheckout } from "./checkout";
+import { slugify, uniqueSlug } from "./slug";
 import type {
   CampaignBrief,
   CampaignDraft,
+  CampaignProgress,
   CatalogSku,
+  CheckoutInput,
+  CheckoutQuote,
   NoteFilterResult,
+  Participant,
+  PlacedOrder,
   PublishedCampaign,
   SportPreset,
   SurfaceOrder,
 } from "./types";
+
+/** Seed roster used when a campaign is published from a draft (no roster import yet). */
+const SEED_ROSTER = [
+  "Jordan Lee",
+  "Priya Nair",
+  "Marcus Hill",
+  "Sofia Alvarez",
+  "Ethan Brooks",
+  "Maya Chen",
+];
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -328,13 +345,14 @@ export class CampaignDraftService {
   publishDraft(operatorId: string, id: string): {
     draft: CampaignDraft;
     campaign: PublishedCampaign;
+    roster: Participant[];
   } {
     const existing = this.getDraft(operatorId, id);
     if (!existing) throw new Error("Draft not found");
 
     if (existing.status === "published" && existing.campaignId) {
       const campaign = this.getCampaign(operatorId, existing.campaignId)!;
-      return { draft: existing, campaign };
+      return { draft: existing, campaign, roster: this.listParticipants(campaign.id) };
     }
 
     if (!existing.headline.trim()) {
@@ -344,19 +362,31 @@ export class CampaignDraftService {
     const campaignId = randomUUID();
     const ts = nowIso();
     const name = existing.headline;
+    const slugTaken = this.db.prepare(`SELECT 1 FROM campaigns WHERE slug = ?`);
+    const slug = uniqueSlug(
+      slugify(`${existing.brief.orgDisplayName} ${existing.brief.sport}`),
+      (candidate) => Boolean(slugTaken.get(candidate)),
+    );
 
     const tx = this.db.transaction(() => {
       this.db
         .prepare(
           `INSERT INTO campaigns (
-            id, operator_id, org_id, name, goal_cents, surface_order, status, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, 'active', ?)`,
+            id, operator_id, org_id, name, slug, headline, supporting_line, theme_key,
+            org_display_name, ends_at, goal_cents, surface_order, status, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)`,
         )
         .run(
           campaignId,
           operatorId,
           existing.orgId,
           name,
+          slug,
+          existing.headline,
+          existing.supportingLine,
+          existing.brief.themeKey,
+          existing.brief.orgDisplayName,
+          existing.brief.windowEnd,
           existing.goalCents,
           existing.surfaceOrder,
           ts,
@@ -367,6 +397,25 @@ export class CampaignDraftService {
       );
       existing.skuIds.forEach((skuId, idx) => {
         offerStmt.run(randomUUID(), campaignId, skuId, idx);
+      });
+
+      const rosterSize = Math.max(1, existing.brief.rosterSize);
+      const perPlayer = Math.round(existing.goalCents / rosterSize);
+      const participantStmt = this.db.prepare(
+        `INSERT INTO participants (
+          id, campaign_id, org_id, display_name, slug, goal_cents, is_minor, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, 1, ?)`,
+      );
+      SEED_ROSTER.slice(0, Math.min(SEED_ROSTER.length, rosterSize)).forEach((displayName) => {
+        participantStmt.run(
+          randomUUID(),
+          campaignId,
+          existing.orgId,
+          displayName,
+          slugify(displayName),
+          perPlayer,
+          ts,
+        );
       });
 
       this.db
@@ -384,28 +433,185 @@ export class CampaignDraftService {
 
     const draft = this.getDraft(operatorId, id)!;
     const campaign = this.getCampaign(operatorId, campaignId)!;
-    return { draft, campaign };
+    return { draft, campaign, roster: this.listParticipants(campaignId) };
   }
 
-  getCampaign(operatorId: string, id: string): PublishedCampaign | null {
-    const row = this.db
-      .prepare(`SELECT * FROM campaigns WHERE id = ? AND operator_id = ?`)
-      .get(id, operatorId) as Record<string, unknown> | undefined;
-    if (!row) return null;
+  private rowToCampaign(row: Record<string, unknown>): PublishedCampaign {
+    const id = row.id as string;
     const offers = this.db
       .prepare(
         `SELECT product_id FROM campaign_offers WHERE campaign_id = ? ORDER BY sort_order`,
       )
       .all(id) as { product_id: string }[];
     return {
-      id: row.id as string,
+      id,
       operatorId: row.operator_id as string,
       orgId: row.org_id as string,
       name: row.name as string,
+      slug: (row.slug as string | null) ?? id,
+      headline: (row.headline as string | null) ?? (row.name as string),
+      supportingLine: (row.supporting_line as string | null) ?? "",
+      themeKey: (row.theme_key as string | null) ?? "classic_season",
+      orgDisplayName: (row.org_display_name as string | null) ?? (row.name as string),
+      endsAt: (row.ends_at as string | null) ?? "",
       goalCents: row.goal_cents as number,
       surfaceOrder: row.surface_order as SurfaceOrder,
       status: "active",
       offerProductIds: offers.map((o) => o.product_id),
+    };
+  }
+
+  getCampaign(operatorId: string, id: string): PublishedCampaign | null {
+    const row = this.db
+      .prepare(`SELECT * FROM campaigns WHERE id = ? AND operator_id = ?`)
+      .get(id, operatorId) as Record<string, unknown> | undefined;
+    return row ? this.rowToCampaign(row) : null;
+  }
+
+  /** Public read: the supporter link has no tenant context, only the slug. */
+  getCampaignBySlug(slug: string): PublishedCampaign | null {
+    const row = this.db
+      .prepare(`SELECT * FROM campaigns WHERE slug = ? AND status = 'active'`)
+      .get(slug) as Record<string, unknown> | undefined;
+    return row ? this.rowToCampaign(row) : null;
+  }
+
+  listParticipants(campaignId: string): Participant[] {
+    const rows = this.db
+      .prepare(`SELECT * FROM participants WHERE campaign_id = ? ORDER BY display_name`)
+      .all(campaignId) as Record<string, unknown>[];
+    return rows.map((row) => ({
+      id: row.id as string,
+      campaignId: row.campaign_id as string,
+      orgId: row.org_id as string,
+      displayName: row.display_name as string,
+      slug: row.slug as string,
+      goalCents: row.goal_cents as number,
+      isMinor: Boolean(row.is_minor),
+    }));
+  }
+
+  getParticipantBySlug(campaignId: string, slug: string): Participant | null {
+    return this.listParticipants(campaignId).find((p) => p.slug === slug) ?? null;
+  }
+
+  getProgress(campaignId: string, participantId?: string | null): CampaignProgress {
+    const row = (
+      participantId
+        ? this.db
+            .prepare(
+              `SELECT COALESCE(SUM(goal_credit_cents), 0) AS raised, COUNT(*) AS n
+               FROM orders WHERE campaign_id = ? AND participant_id = ?`,
+            )
+            .get(campaignId, participantId)
+        : this.db
+            .prepare(
+              `SELECT COALESCE(SUM(goal_credit_cents), 0) AS raised, COUNT(*) AS n
+               FROM orders WHERE campaign_id = ?`,
+            )
+            .get(campaignId)
+    ) as { raised: number; n: number };
+    const goal = participantId
+      ? (this.listParticipants(campaignId).find((p) => p.id === participantId)?.goalCents ?? 0)
+      : (this.db
+          .prepare(`SELECT goal_cents FROM campaigns WHERE id = ?`)
+          .get(campaignId) as { goal_cents: number } | undefined)?.goal_cents ?? 0;
+    return { raisedCents: row.raised, goalCents: goal, orderCount: row.n };
+  }
+
+  quote(input: CheckoutInput, donationFeeBps: number): CheckoutQuote {
+    const campaign = this.getCampaignBySlug(input.campaignSlug);
+    if (!campaign) throw new Error("Campaign not found");
+    return quoteCheckout(
+      this.catalog,
+      campaign.offerProductIds,
+      input.lines,
+      input.donationCents,
+      donationFeeBps,
+    );
+  }
+
+  /**
+   * Mock checkout. No card data touches this code; a real build hands off to
+   * Stripe Checkout and records the order from the webhook.
+   */
+  placeOrder(input: CheckoutInput, donationFeeBps: number): PlacedOrder {
+    const campaign = this.getCampaignBySlug(input.campaignSlug);
+    if (!campaign) throw new Error("Campaign not found");
+    if (!input.supporterName.trim()) throw new Error("Supporter name is required");
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(input.supporterEmail)) {
+      throw new Error("A valid email is required");
+    }
+
+    const participant = input.participantSlug
+      ? this.getParticipantBySlug(campaign.id, input.participantSlug)
+      : null;
+    if (input.participantSlug && !participant) throw new Error("Participant not found");
+
+    const quote = this.quote(input, donationFeeBps);
+    if (quote.totalCents <= 0) throw new Error("Add an item or a donation first");
+
+    const orderId = randomUUID();
+    const ts = nowIso();
+    const tx = this.db.transaction(() => {
+      this.db
+        .prepare(
+          `INSERT INTO orders (
+            id, campaign_id, participant_id, supporter_name, supporter_email,
+            subtotal_cents, shipping_cents, total_cents, goal_credit_cents, status, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid_mock', ?)`,
+        )
+        .run(
+          orderId,
+          campaign.id,
+          participant?.id ?? null,
+          input.supporterName.trim(),
+          input.supporterEmail.trim(),
+          quote.subtotalCents,
+          quote.shippingCents,
+          quote.totalCents,
+          quote.goalCreditCents,
+          ts,
+        );
+      const lineStmt = this.db.prepare(
+        `INSERT INTO order_lines (id, order_id, type, product_id, qty, unit_cents, group_credit_cents)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      );
+      for (const line of quote.lines) {
+        lineStmt.run(
+          randomUUID(),
+          orderId,
+          "product",
+          line.productId,
+          line.qty,
+          line.unitCents,
+          line.groupCreditCents,
+        );
+      }
+      if (quote.donationCents > 0) {
+        lineStmt.run(
+          randomUUID(),
+          orderId,
+          "donation",
+          null,
+          1,
+          quote.donationCents,
+          quote.donationCents - quote.donationFeeCents,
+        );
+      }
+      if (quote.shippingCents > 0) {
+        lineStmt.run(randomUUID(), orderId, "shipping", null, 1, quote.shippingCents, 0);
+      }
+    });
+    tx();
+
+    return {
+      id: orderId,
+      campaignId: campaign.id,
+      participantId: participant?.id ?? null,
+      totalCents: quote.totalCents,
+      goalCreditCents: quote.goalCreditCents,
+      status: "paid_mock",
     };
   }
 }

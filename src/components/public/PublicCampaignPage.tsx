@@ -1,0 +1,349 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { formatCents } from "@/domain/campaign-draft/fee-preview";
+import { resolveThemePack } from "@/domain/campaign-draft/theme-packs";
+import type {
+  CampaignProgress,
+  CatalogSku,
+  CheckoutQuote,
+  Participant,
+  PublishedCampaign,
+} from "@/domain/campaign-draft/types";
+import { feeRateToBps, type OperatorBrand } from "@/domain/operators";
+
+const DONATION_PRESETS = [2500, 5000, 10000];
+
+export function PublicCampaignPage({
+  campaign,
+  participant,
+  roster,
+  catalog,
+  operator,
+  progress: initialProgress,
+}: {
+  campaign: PublishedCampaign;
+  participant: Participant | null;
+  roster: Participant[];
+  catalog: CatalogSku[];
+  operator: OperatorBrand;
+  progress: CampaignProgress;
+}) {
+  const theme = resolveThemePack(campaign.themeKey);
+  const offers = useMemo(
+    () => campaign.offerProductIds.map((id) => catalog.find((s) => s.id === id)).filter(Boolean) as CatalogSku[],
+    [campaign.offerProductIds, catalog],
+  );
+  const products = offers.filter((s) => s.kind === "product");
+  const hasDonation = offers.some((s) => s.kind === "donation");
+  const feeBps = feeRateToBps(operator.customFeeRate);
+  const opQuery = `?op=${operator.id}`;
+
+  const [qty, setQty] = useState<Record<string, number>>({});
+  const [donationCents, setDonationCents] = useState(0);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [quote, setQuote] = useState<CheckoutQuote | null>(null);
+  const [progress, setProgress] = useState(initialProgress);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [receipt, setReceipt] = useState<{ id: string; totalCents: number; goalCreditCents: number } | null>(null);
+
+  const lines = useMemo(
+    () => Object.entries(qty).filter(([, n]) => n > 0).map(([productId, n]) => ({ productId, qty: n })),
+    [qty],
+  );
+  const cartEmpty = lines.length === 0 && donationCents <= 0;
+
+  useEffect(() => {
+    if (cartEmpty) {
+      setQuote(null);
+      return;
+    }
+    const controller = new AbortController();
+    fetch("/api/public/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        mode: "quote",
+        campaignSlug: campaign.slug,
+        participantSlug: participant?.slug ?? null,
+        operatorId: operator.id,
+        supporterName: "quote",
+        supporterEmail: "quote@quote.local",
+        lines,
+        donationCents,
+      }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.quote) setQuote(data.quote);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [cartEmpty, lines, donationCents, campaign.slug, participant?.slug, operator.id]);
+
+  async function pay() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/public/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "pay",
+          campaignSlug: campaign.slug,
+          participantSlug: participant?.slug ?? null,
+          operatorId: operator.id,
+          supporterName: name,
+          supporterEmail: email,
+          lines,
+          donationCents,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Checkout failed");
+      setReceipt(data.order);
+      setProgress(data.progress);
+      setQty({});
+      setDonationCents(0);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Checkout failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const pct = progress.goalCents > 0 ? Math.min(100, Math.round((progress.raisedCents / progress.goalCents) * 100)) : 0;
+  const endsLabel = campaign.endsAt
+    ? new Date(`${campaign.endsAt}T00:00:00Z`).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        timeZone: "UTC",
+      })
+    : null;
+
+  return (
+    <div
+      className="public-page"
+      style={
+        {
+          "--pub-bg": theme.colors.background,
+          "--pub-bg-alt": theme.colors.backgroundAlt,
+          "--pub-ink": theme.colors.ink,
+          "--pub-muted": theme.colors.muted,
+          "--pub-line": theme.colors.line,
+          "--pub-accent": theme.colors.accent,
+          "--pub-accent-ink": theme.colors.accentInk,
+          "--pub-font-body": theme.fonts.body,
+          "--pub-font-display": theme.fonts.display,
+          "--operator-primary": operator.primaryColor,
+        } as React.CSSProperties
+      }
+    >
+      <header className="public-topbar">
+        <span className="public-operator">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={operator.logoUrl} alt="" width={28} height={28} />
+          <span>{operator.operatorName}</span>
+        </span>
+        <span className="public-secure">Secure checkout · mock payments in this prototype</span>
+      </header>
+
+      <main className="public-grid">
+        <section className="public-hero">
+          {participant ? (
+            <p className="public-kicker">
+              You&apos;re supporting <strong>{participant.displayName}</strong> ·{" "}
+              <Link href={`/c/${campaign.slug}${opQuery}`}>view team page</Link>
+            </p>
+          ) : (
+            <p className="public-kicker">{campaign.orgDisplayName} · team page</p>
+          )}
+          <h1>{campaign.headline}</h1>
+          <p className="public-lede">{campaign.supportingLine}</p>
+
+          <div className="public-progress">
+            <div className="public-progress-bar" aria-hidden>
+              <span style={{ width: `${pct}%` }} />
+            </div>
+            <div className="public-progress-meta">
+              <strong>{formatCents(progress.raisedCents)}</strong> raised of {formatCents(progress.goalCents)}
+              {participant ? " personal goal" : " team goal"} · {progress.orderCount} supporter
+              {progress.orderCount === 1 ? "" : "s"}
+              {endsLabel ? ` · ends ${endsLabel}` : ""}
+            </div>
+          </div>
+
+          {!participant && roster.length > 0 ? (
+            <div className="public-roster">
+              <h2>Support a specific player</h2>
+              <div className="public-roster-grid">
+                {roster.map((p) => (
+                  <Link key={p.id} href={`/c/${campaign.slug}/${p.slug}${opQuery}`} className="public-roster-chip">
+                    {p.displayName}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {products.length > 0 ? (
+            <>
+              <h2>Shop to support</h2>
+              <ul className="public-products">
+                {products.map((sku) => {
+                  const n = qty[sku.id] ?? 0;
+                  return (
+                    <li key={sku.id} className="public-product">
+                      <div>
+                        <div className="public-product-name">{sku.name}</div>
+                        <div className="public-product-meta">
+                          {formatCents(sku.retailCents)} + {formatCents(sku.shipHandlingCents)} shipping ·{" "}
+                          <span className="public-credit">{formatCents(sku.groupCreditCents)} to the program</span>
+                        </div>
+                      </div>
+                      <div className="public-qty">
+                        <button type="button" aria-label={`Remove one ${sku.name}`} disabled={n === 0} onClick={() => setQty({ ...qty, [sku.id]: Math.max(0, n - 1) })}>
+                          −
+                        </button>
+                        <span>{n}</span>
+                        <button type="button" aria-label={`Add one ${sku.name}`} onClick={() => setQty({ ...qty, [sku.id]: n + 1 })}>
+                          +
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          ) : null}
+
+          {hasDonation ? (
+            <>
+              <h2>Or donate directly</h2>
+              <div className="public-donate">
+                {DONATION_PRESETS.map((cents) => (
+                  <button
+                    key={cents}
+                    type="button"
+                    className={donationCents === cents ? "is-selected" : ""}
+                    onClick={() => setDonationCents(donationCents === cents ? 0 : cents)}
+                  >
+                    {formatCents(cents)}
+                  </button>
+                ))}
+                <label className="public-donate-custom">
+                  <span>$</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    placeholder="Other"
+                    value={donationCents > 0 && !DONATION_PRESETS.includes(donationCents) ? donationCents / 100 : ""}
+                    onChange={(e) => setDonationCents(Math.max(0, Math.round(Number(e.target.value || 0) * 100)))}
+                  />
+                </label>
+              </div>
+              <p className="public-finePrint">
+                {operator.operatorName} keeps {(operator.customFeeRate * 100).toFixed(0)}% of donations to run the
+                platform; the rest goes to {campaign.orgDisplayName}.
+              </p>
+            </>
+          ) : null}
+        </section>
+
+        <aside className="public-checkout">
+          {receipt ? (
+            <div className="public-receipt">
+              <h2>Thank you{name ? `, ${name.split(" ")[0]}` : ""}!</h2>
+              <p>
+                You paid <strong>{formatCents(receipt.totalCents)}</strong>.{" "}
+                <strong>{formatCents(receipt.goalCreditCents)}</strong> counts toward{" "}
+                {participant ? `${participant.displayName}'s` : "the team's"} goal.
+              </p>
+              <p className="public-finePrint">Mock order {receipt.id.slice(0, 8)} · no card was charged.</p>
+              <button type="button" className="public-pay" onClick={() => setReceipt(null)}>
+                Support again
+              </button>
+            </div>
+          ) : (
+            <>
+              <h2>Your order</h2>
+              {cartEmpty ? (
+                <p className="public-muted">Pick an item or a donation amount to get started.</p>
+              ) : quote ? (
+                <dl className="public-summary">
+                  {quote.lines.map((l) => (
+                    <div key={l.productId}>
+                      <dt>
+                        {l.qty} × {l.name}
+                      </dt>
+                      <dd>{formatCents(l.unitCents * l.qty)}</dd>
+                    </div>
+                  ))}
+                  {quote.donationCents > 0 ? (
+                    <div>
+                      <dt>Donation</dt>
+                      <dd>{formatCents(quote.donationCents)}</dd>
+                    </div>
+                  ) : null}
+                  {quote.shippingCents > 0 ? (
+                    <div>
+                      <dt>Shipping &amp; handling</dt>
+                      <dd>{formatCents(quote.shippingCents)}</dd>
+                    </div>
+                  ) : null}
+                  <div className="public-total">
+                    <dt>You pay</dt>
+                    <dd>{formatCents(quote.totalCents)}</dd>
+                  </div>
+                  <div className="public-credit-row">
+                    <dt>Program receives</dt>
+                    <dd>{formatCents(quote.goalCreditCents)}</dd>
+                  </div>
+                  {quote.donationFeeCents > 0 ? (
+                    <div className="public-finePrint-row">
+                      <dt>Platform fee on donation ({(feeBps / 100).toFixed(0)}%)</dt>
+                      <dd>−{formatCents(quote.donationFeeCents)}</dd>
+                    </div>
+                  ) : null}
+                  {quote.shippingCents > 0 ? (
+                    <p className="public-finePrint">Shipping never counts toward the goal.</p>
+                  ) : null}
+                </dl>
+              ) : (
+                <p className="public-muted">Pricing…</p>
+              )}
+
+              <label className="public-field">
+                <span>Your name</span>
+                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Pat Johnson" autoComplete="name" />
+              </label>
+              <label className="public-field">
+                <span>Email for receipt</span>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="pat@example.com" autoComplete="email" />
+              </label>
+
+              <div className="public-card-stub" aria-hidden>
+                <span>•••• •••• •••• 4242</span>
+                <span>Card entry handled by the payment provider in production</span>
+              </div>
+
+              {error ? <p className="public-error">{error}</p> : null}
+              <button type="button" className="public-pay" disabled={busy || cartEmpty || !quote} onClick={() => void pay()}>
+                {busy ? "Processing…" : quote ? `Pay ${formatCents(quote.totalCents)}` : "Pay"}
+              </button>
+              <p className="public-finePrint">
+                Prototype: this records a mock order and charges nothing.
+              </p>
+            </>
+          )}
+        </aside>
+      </main>
+    </div>
+  );
+}
