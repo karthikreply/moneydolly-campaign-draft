@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "share": "powershell -ExecutionPolicy Bypass -File scripts/share-demo.ps1"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",

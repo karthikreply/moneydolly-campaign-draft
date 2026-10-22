@@ -13,15 +13,17 @@ Plan: `docs/superpowers/plans/2026-10-22-campaign-draft-agent.md`.
 4. Layout B review: edit left, supporter preview with **program receives** right.
 5. Publish creates `Campaign` + `CampaignOffer` rows (SQLite pilot store).
 
-## Try the demo
+## Share with product / team
+
+See **[SHARE.md](./SHARE.md)** for the always-on Render link and the temporary laptop tunnel.
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/karthikreply/moneydolly-campaign-draft)
 
 | | |
 |---|---|
 | **Talk to the agent** | `/agent` |
 | **Fill a brief** | `/drafts/new` |
 | **Example pay page** | `/c/lincoln-high-basketball?op=apex` |
-
-Switch **Apex / Victory** in the top bar to see white-label fees and branding.
 
 ## Run locally
 
@@ -31,19 +33,7 @@ npm test
 npm run dev
 ```
 
-Open http://localhost:3000 → **Talk to the agent** or **Brief**.
-
-## Host a shareable demo (always on)
-
-This app needs a long-running Node process (SQLite). Deploy with Docker:
-
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/karthikreply/moneydolly-campaign-draft)
-
-1. Open the button above (or the [deploy link](https://render.com/deploy?repo=https://github.com/karthikreply/moneydolly-campaign-draft)).
-2. Sign in to Render with GitHub and click **Apply**.
-3. When the service is live, share the `*.onrender.com` URL with your team.
-
-`Dockerfile` and `render.yaml` are already in the repo.
+Open http://localhost:3000. Temporary public URL: `npm run share` (needs `npm run dev` already up).
 
 ## Stack
 
