@@ -3311,21 +3311,6 @@ button {
   position: absolute;
 }
 
-.ats-build .ats-chat .ats-composer {
-  flex: 0 0 auto;
-  position: relative;
-  z-index: 1;
-  padding: var(--s-2) var(--s-3);
-}
-
-.ats-build .ats-chat .ats-composer textarea {
-  resize: none;
-  min-height: 3.25rem;
-  height: auto;
-  max-height: 4.5rem;
-  overflow: auto;
-}
-
 .ats-build .ats-chat-tools {
   flex: 0 0 auto;
   display: grid;

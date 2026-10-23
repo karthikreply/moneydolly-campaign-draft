@@ -511,52 +511,6 @@ export function AdminTemplateStudio() {
             ) : null}
           </ol>
 
-          <form
-            className={"ats-composer" + (running ? " is-running" : "")}
-            onSubmit={(e) => {
-              e.preventDefault();
-              void send(input);
-            }}
-          >
-            <label htmlFor="ats-input" className="sr-only-inline">
-              Message the template agent
-            </label>
-            <textarea
-              id="ats-input"
-              rows={2}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  void send(input);
-                }
-              }}
-              placeholder={
-                pack
-                  ? "Ask for a change: “make it fall”, “cap items at $25”, “publish it for everyone”"
-                  : "Describe a season: sport, colours, goal limits, items…"
-              }
-              disabled={busy}
-            />
-            <div className="ats-composer-row">
-              <button
-                type="button"
-                className={"ats-mic" + (listening ? " is-on" : "")}
-                onClick={toggleMic}
-                aria-pressed={listening}
-                aria-label={listening ? "Stop listening" : "Speak your request"}
-              >
-                <span aria-hidden="true">{listening ? "■" : "🎙"}</span>
-                {listening ? "Listening" : "Speak"}
-              </button>
-              <span className="ats-hint">{micNote ?? "Enter to send"}</span>
-              <button type="submit" className="ats-send" disabled={busy || !input.trim()}>
-                Send
-              </button>
-            </div>
-          </form>
-
           <div className="ats-chat-tools">
           <details className="ats-possible">
             <summary>What you can ask</summary>
