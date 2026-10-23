@@ -33,9 +33,11 @@
   --focus-halo: color-mix(in srgb, #0071e3 28%, white);
 
   /* Type — one loaded face for UI + public pages (themes only change weight/tracking). */
-  --font-display: var(--font-grotesk), "Segoe UI", sans-serif;
-  --font-body: var(--font-grotesk), "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-  --font-mono-stack: var(--font-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-grotesk: "Schibsted Grotesk", "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-display: var(--font-grotesk);
+  --font-body: var(--font-grotesk), "Helvetica Neue", Arial, sans-serif;
+  --font-mono-stack: var(--font-mono);
 
   --text-xs: 1rem; /* floor */
   --text-sm: 1.0625rem;
