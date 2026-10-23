@@ -1,33 +1,28 @@
-import { notFound } from "next/navigation";
-import { PublicCampaignPage } from "@/components/public/PublicCampaignPage";
-import { findOperator } from "@/domain/operators";
-import { getCampaignDraftService } from "@/lib/service";
+import { Suspense } from "react";
+import { PublicCampaignLoader } from "@/components/public/PublicCampaignLoader";
 
-export const dynamic = "force-dynamic";
+const SEED_SLUG = "lincoln-volleyball";
+const SEED_PARTICIPANTS = [
+  "jordan-lee",
+  "priya-nair",
+  "marcus-hill",
+  "sofia-alvarez",
+  "ethan-brooks",
+  "maya-chen",
+];
 
-export default async function ParticipantPublicPage({
+export function generateStaticParams() {
+  return SEED_PARTICIPANTS.map((participant) => ({ slug: SEED_SLUG, participant }));
+}
+
+export default function ParticipantPublicPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ slug: string; participant: string }>;
-  searchParams: Promise<{ op?: string }>;
 }) {
-  const { slug, participant: participantSlug } = await params;
-  const { op } = await searchParams;
-  const svc = getCampaignDraftService();
-  const campaign = svc.getCampaignBySlug(slug);
-  if (!campaign) notFound();
-  const participant = svc.getParticipantBySlug(campaign.id, participantSlug);
-  if (!participant) notFound();
-
   return (
-    <PublicCampaignPage
-      campaign={campaign}
-      participant={participant}
-      roster={svc.listParticipants(campaign.id)}
-      catalog={svc.getCatalog()}
-      operator={findOperator(op ?? "apex")}
-      progress={svc.getProgress(campaign.id, participant.id)}
-    />
+    <Suspense fallback={<p className="public-muted">Loading campaign…</p>}>
+      <PublicCampaignLoader params={params} />
+    </Suspense>
   );
 }

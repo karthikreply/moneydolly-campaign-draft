@@ -14,6 +14,7 @@ import { NoteFilterBadge } from "./NoteFilterBadge";
 import { ParticipantAppPreview } from "./ParticipantAppPreview";
 import { PublishBar } from "./PublishBar";
 import { SupporterPagePreview } from "./SupporterPagePreview";
+import { apiPublishDraft, apiUpdateDraft } from "@/lib/campaign-client";
 import { useOperator } from "./OperatorProvider";
 
 export function DraftReviewSplit({
@@ -70,20 +71,14 @@ export function DraftReviewSplit({
 
   async function persist(patch: Partial<CampaignDraft>) {
     setError(null);
-    const res = await fetch(`/api/drafts/${draft.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        goalCents: patch.goalCents,
-        headline: patch.headline,
-        supportingLine: patch.supportingLine,
-        whyDraft: patch.whyDraft,
-        skuIds: patch.skuIds,
-        surfaceOrder: patch.surfaceOrder,
-      }),
+    const data = await apiUpdateDraft(draft.id, {
+      goalCents: patch.goalCents,
+      headline: patch.headline,
+      supportingLine: patch.supportingLine,
+      whyDraft: patch.whyDraft,
+      skuIds: patch.skuIds,
+      surfaceOrder: patch.surfaceOrder,
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error ?? "Save failed");
     setDraft(data);
   }
 
@@ -91,9 +86,7 @@ export function DraftReviewSplit({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/drafts/${draft.id}/publish`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Publish failed");
+      const data = await apiPublishDraft(draft.id);
       setDraft(data.draft);
       setPublishedId(data.campaign.id);
       setPublished(data.campaign);

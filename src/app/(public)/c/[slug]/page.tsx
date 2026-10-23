@@ -1,31 +1,16 @@
-import { notFound } from "next/navigation";
-import { PublicCampaignPage } from "@/components/public/PublicCampaignPage";
-import { findOperator } from "@/domain/operators";
-import { getCampaignDraftService } from "@/lib/service";
+import { Suspense } from "react";
+import { PublicCampaignLoader } from "@/components/public/PublicCampaignLoader";
 
-export const dynamic = "force-dynamic";
+const SEED_SLUG = "lincoln-volleyball";
 
-export default async function CampaignPublicPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<{ op?: string }>;
-}) {
-  const { slug } = await params;
-  const { op } = await searchParams;
-  const svc = getCampaignDraftService();
-  const campaign = svc.getCampaignBySlug(slug);
-  if (!campaign) notFound();
+export function generateStaticParams() {
+  return [{ slug: SEED_SLUG }];
+}
 
+export default function CampaignPublicPage({ params }: { params: Promise<{ slug: string }> }) {
   return (
-    <PublicCampaignPage
-      campaign={campaign}
-      participant={null}
-      roster={svc.listParticipants(campaign.id)}
-      catalog={svc.getCatalog()}
-      operator={findOperator(op ?? "apex")}
-      progress={svc.getProgress(campaign.id)}
-    />
+    <Suspense fallback={<p className="public-muted">Loading campaign…</p>}>
+      <PublicCampaignLoader params={params} />
+    </Suspense>
   );
 }

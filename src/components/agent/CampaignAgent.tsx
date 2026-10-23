@@ -13,6 +13,7 @@ import {
 } from "@/domain/agent/campaign-agent-dialog";
 import { formatCents } from "@/domain/campaign-draft/fee-preview";
 import type { CampaignDraft, CatalogSku, Participant, PublishedCampaign } from "@/domain/campaign-draft/types";
+import { apiCreateDraft, apiPublishDraft } from "@/lib/campaign-client";
 import { useOperator } from "../OperatorProvider";
 
 type Message = { id: string; role: "agent" | "user"; text: string };
@@ -141,24 +142,11 @@ export function CampaignAgent({ catalog }: { catalog: CatalogSku[] }) {
     setBusy(true);
     try {
       if (action.type === "create_draft") {
-        const res = await fetch("/api/drafts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(action.brief),
-        });
-        const data = (await res.json()) as CampaignDraft & { error?: string };
-        if (!res.ok) throw new Error(data.error ?? "Could not create the draft");
+        const data = await apiCreateDraft(action.brief);
         setDraft(data);
         await pushAgent(draftReadyReply(result.state, data));
       } else if (action.type === "publish") {
-        const res = await fetch(`/api/drafts/${action.draftId}/publish`, { method: "POST" });
-        const data = (await res.json()) as {
-          draft: CampaignDraft;
-          campaign: PublishedCampaign;
-          roster: Participant[];
-          error?: string;
-        };
-        if (!res.ok) throw new Error(data.error ?? "Publish failed");
+        const data = await apiPublishDraft(action.draftId);
         setPublished({ campaign: data.campaign, roster: data.roster ?? [] });
         await pushAgent(publishedReply(result.state, data.campaign, data.roster?.length ?? 0));
       }

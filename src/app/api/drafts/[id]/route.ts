@@ -12,13 +12,18 @@ const patchSchema = z.object({
 });
 
 export async function GET(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ id: string }> },
 ) {
   const { id } = await ctx.params;
-  const draft = getCampaignDraftService().getDraft(DEMO.operatorId, id);
+  const svc = getCampaignDraftService();
+  const draft = svc.getDraft(DEMO.operatorId, id);
   if (!draft) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(draft);
+  const bundle = new URL(req.url).searchParams.get("bundle") === "1";
+  if (!bundle) return NextResponse.json(draft);
+  const campaign = draft.campaignId ? svc.getCampaign(DEMO.operatorId, draft.campaignId) : null;
+  const roster = campaign ? svc.listParticipants(campaign.id) : [];
+  return NextResponse.json({ draft, catalog: svc.getCatalog(), campaign, roster });
 }
 
 export async function PATCH(

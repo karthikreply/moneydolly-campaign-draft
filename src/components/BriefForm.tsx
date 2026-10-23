@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { THEME_LIST, type ThemeKey } from "@/domain/campaign-draft/theme-packs";
 import type { ExtractedSlots } from "@/domain/campaign-draft/slot-extractor";
 import { OmniBar } from "@/components/OmniBar";
+import { apiCreateDraft } from "@/lib/campaign-client";
 
 const SPORTS = [
   { value: "volleyball", label: "Volleyball" },
@@ -79,13 +80,7 @@ export function BriefForm() {
     };
 
     try {
-      const res = await fetch("/api/drafts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Draft failed");
+      const data = await apiCreateDraft(body);
       router.push(`/drafts/${data.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Draft failed");

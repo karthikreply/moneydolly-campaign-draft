@@ -1,32 +1,30 @@
 # Share this demo with your team
 
-Pick one option.
+## Primary link (GitHub Pages)
 
-## Option A — Always-on link (recommended)
+**https://karthikreply.github.io/moneydolly-campaign-draft/**
 
-Hosted on Render’s free Docker plan. Survives overnight; URL stays the same.
-
-1. Open: https://render.com/deploy?repo=https://github.com/karthikreply/moneydolly-campaign-draft  
-2. Sign in with GitHub → **Apply**.  
-3. Wait for the first deploy (~5–10 minutes).  
-4. Share the `https://moneydolly-campaign-draft.onrender.com` (or the URL Render shows).
-
-Free Render services sleep after idle time; the first open after sleep can take ~30–60 seconds.
-
-What to try:
+Static demo: data lives in each visitor’s browser (`localStorage`). A seeded **Lincoln Volleyball** campaign is created on first load so pay links work immediately.
 
 | Path | What it is |
 |------|------------|
 | `/` | Director home |
-| `/agent` | Voice / chat campaign agent |
-| `/drafts/new` | Brief form |
-| `/c/lincoln-high-basketball?op=apex` | Example supporter pay page |
+| `/agent/` | Voice / chat campaign agent |
+| `/drafts/new/` | Brief form |
+| `/c/lincoln-volleyball/?op=apex` | Example team pay page |
+| `/c/lincoln-volleyball/jordan-lee/?op=apex` | Example player pay page |
 
 Switch **Apex / Victory** in the top bar for white-label fees.
 
-## Option B — Quick share from your laptop (temporary)
+Published campaigns you create in the agent or studio are visible **in that browser only** until you share the link with someone who has the same stored data (use the copy-link buttons after publish).
 
-Works only while your PC is awake and the app is running.
+## Option B — Full SQLite + API (local or Render)
+
+For persistent server-side storage, run locally (`npm run dev`) or deploy to Render:
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/karthikreply/moneydolly-campaign-draft)
+
+## Option C — Quick share from your laptop (temporary tunnel)
 
 ```powershell
 npm run dev

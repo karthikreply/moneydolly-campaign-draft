@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { apiIntakeUtterance } from "@/lib/campaign-client";
 import { hydrateIntent } from "@/lib/hydrateIntent";
 import type { ExtractedSlots } from "@/domain/campaign-draft/slot-extractor";
 
@@ -106,14 +107,11 @@ export function OmniBar({
       return;
     }
     setError(null);
-    const res = await fetch("/api/omni", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ utterance }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error ?? "Could not draft that brief");
+    let data: Awaited<ReturnType<typeof apiIntakeUtterance>>;
+    try {
+      data = await apiIntakeUtterance(utterance);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not draft that brief");
       return;
     }
     if (data.canDraft && data.draft?.id) {

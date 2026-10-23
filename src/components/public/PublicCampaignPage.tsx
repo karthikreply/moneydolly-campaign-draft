@@ -12,6 +12,7 @@ import type {
   PublishedCampaign,
 } from "@/domain/campaign-draft/types";
 import { feeRateToBps, type OperatorBrand } from "@/domain/operators";
+import { apiCheckoutPay, apiCheckoutQuote } from "@/lib/campaign-client";
 
 const DONATION_PRESETS = [2500, 5000, 10000];
 
@@ -63,23 +64,17 @@ export function PublicCampaignPage({
     }
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
-      fetch("/api/public/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({
-          mode: "quote",
-          campaignSlug: campaign.slug,
-          participantSlug: participant?.slug ?? null,
-          operatorId: operator.id,
-          supporterName: "quote",
-          supporterEmail: "quote@quote.local",
-          lines,
-          donationCents,
-        }),
+      void apiCheckoutQuote({
+        campaignSlug: campaign.slug,
+        participantSlug: participant?.slug ?? null,
+        operatorId: operator.id,
+        supporterName: "quote",
+        supporterEmail: "quote@quote.local",
+        lines,
+        donationCents,
       })
-        .then((r) => r.json())
         .then((data) => {
+          if (controller.signal.aborted) return;
           if (data.quote) setQuote(data.quote);
           else setQuote(null);
         })
@@ -98,22 +93,15 @@ export function PublicCampaignPage({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/public/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mode: "pay",
-          campaignSlug: campaign.slug,
-          participantSlug: participant?.slug ?? null,
-          operatorId: operator.id,
-          supporterName: name,
-          supporterEmail: email,
-          lines,
-          donationCents,
-        }),
+      const data = await apiCheckoutPay({
+        campaignSlug: campaign.slug,
+        participantSlug: participant?.slug ?? null,
+        operatorId: operator.id,
+        supporterName: name,
+        supporterEmail: email,
+        lines,
+        donationCents,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Checkout failed");
       setReceipt(data.order);
       setProgress(data.progress);
       setQty({});

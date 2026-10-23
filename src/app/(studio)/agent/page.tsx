@@ -1,8 +1,8 @@
-import { CampaignAgent } from "@/components/agent/CampaignAgent";
-import { getCampaignDraftService } from "@/lib/service";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { CampaignAgent } from "@/components/agent/CampaignAgent";
+import { STUB_CATALOG } from "@/domain/campaign-draft/stub-catalog";
 
 export default function AgentPage() {
-  return <CampaignAgent catalog={getCampaignDraftService().getCatalog()} />;
+  return <CampaignAgent catalog={STUB_CATALOG} />;
 }

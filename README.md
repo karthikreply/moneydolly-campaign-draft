@@ -15,15 +15,15 @@ Plan: `docs/superpowers/plans/2026-10-22-campaign-draft-agent.md`.
 
 ## Share with product / team
 
-See **[SHARE.md](./SHARE.md)** for the always-on Render link and the temporary laptop tunnel.
+**Live demo:** https://karthikreply.github.io/moneydolly-campaign-draft/
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/karthikreply/moneydolly-campaign-draft)
+See **[SHARE.md](./SHARE.md)** for paths, localStorage behavior, and Render/tunnel options.
 
 | | |
 |---|---|
-| **Talk to the agent** | `/agent` |
-| **Fill a brief** | `/drafts/new` |
-| **Example pay page** | `/c/lincoln-high-basketball?op=apex` |
+| **Talk to the agent** | `/agent/` |
+| **Fill a brief** | `/drafts/new/` |
+| **Example pay page** | `/c/lincoln-volleyball/?op=apex` |
 
 ## Run locally
 
