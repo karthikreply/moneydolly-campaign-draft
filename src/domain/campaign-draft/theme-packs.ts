@@ -1,3 +1,5 @@
+import { lookupRegistryTheme } from "../admin/theme-registry-index";
+
 export type ThemeKey =
   | "classic_season"
   | "spirit_week"
@@ -7,7 +9,7 @@ export type ThemeKey =
   | "community";
 
 export interface CampaignThemePack {
-  key: ThemeKey;
+  key: string;
   name: string;
   description: string;
   /** Extra catalog tags preferred for this theme */
@@ -180,9 +182,16 @@ export const THEME_PACKS: Record<ThemeKey, CampaignThemePack> = {
 
 export const THEME_LIST = Object.values(THEME_PACKS);
 
-export function resolveThemePack(key: string | undefined | null): CampaignThemePack {
-  if (key && key in THEME_PACKS) {
-    return THEME_PACKS[key as ThemeKey];
+export function resolveThemePack(
+  key: string | undefined | null,
+  operatorId?: string | null,
+): CampaignThemePack {
+  if (key) {
+    const fromRegistry = lookupRegistryTheme(key, operatorId ?? null);
+    if (fromRegistry) return fromRegistry;
+    if (key in THEME_PACKS) {
+      return THEME_PACKS[key as ThemeKey];
+    }
   }
   return THEME_PACKS.classic_season;
 }

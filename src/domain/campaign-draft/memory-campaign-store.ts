@@ -3,6 +3,10 @@ import { PROTOTYPE_TODAY } from "@/lib/hydrateIntent";
 import { runDraftRules } from "./draft-rules-engine";
 import { hydrateOmniBrief } from "./omni-hydrate";
 import {
+  applyRegistryToPresetStore,
+  getRegistryCatalog,
+} from "../admin/presets-and-catalog";
+import {
   createPresetStore,
   resolveSportPreset,
   type PresetStore,
@@ -44,7 +48,7 @@ function nowIso(): string {
 }
 
 function normalizeBrief(raw: CampaignBrief): CampaignBrief {
-  const themeKey = isThemeKey(raw.themeKey) ? raw.themeKey : "classic_season";
+  const themeKey = raw.themeKey?.trim() ? raw.themeKey : "classic_season";
   return { ...raw, themeKey };
 }
 
@@ -180,13 +184,15 @@ export class MemoryCampaignStore {
     }
 
     const brief = normalizeBrief(input.brief);
-    resolveThemePack(brief.themeKey);
+    resolveThemePack(brief.themeKey, input.operatorId);
 
+    applyRegistryToPresetStore(this.presetStore, input.operatorId);
     const preset = resolveSportPreset(this.presetStore, input.operatorId, brief.sport);
+    const catalog = getRegistryCatalog(input.operatorId);
     const rules = runDraftRules({
       brief,
       preset,
-      catalog: this.catalog,
+      catalog,
     });
     const guarded = await generateGuardedCopy({
       orgName: brief.orgDisplayName,

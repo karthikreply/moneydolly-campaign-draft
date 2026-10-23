@@ -1,17 +1,36 @@
 import {
+  applyRegistryToPresetStore,
+  getRegistryCatalog,
+} from "@/domain/admin/presets-and-catalog";
+import {
   MemoryCampaignStore,
   seedPublishedDemoCampaign,
   type MemoryStoreSnapshot,
 } from "@/domain/campaign-draft/memory-campaign-store";
+import { createPresetStore } from "@/domain/campaign-draft/sport-presets";
 import type { CampaignBrief, CampaignDraft, CatalogSku } from "@/domain/campaign-draft/types";
 import type { CheckoutInput } from "@/domain/campaign-draft/types";
 import { feeRateToBps, findOperator } from "@/domain/operators";
+import { hydrateRegistryFromStorage } from "@/lib/registry-storage";
 import { DEMO } from "@/lib/demo-tenant";
 
 const STORAGE_KEY = "md-campaign-draft-v1";
 
 let store: MemoryCampaignStore | null = null;
 let ready: Promise<void> | null = null;
+
+export function resetDemoStore(): void {
+  store = null;
+  ready = null;
+}
+
+function buildMemoryStore(snapshot?: MemoryStoreSnapshot): MemoryCampaignStore {
+  hydrateRegistryFromStorage();
+  const presetStore = createPresetStore();
+  applyRegistryToPresetStore(presetStore, DEMO.operatorId);
+  const catalog = getRegistryCatalog(DEMO.operatorId);
+  return new MemoryCampaignStore(catalog, presetStore, snapshot);
+}
 
 function readSnapshot(): MemoryStoreSnapshot | undefined {
   if (typeof window === "undefined") return undefined;
@@ -36,7 +55,7 @@ async function getReadyStore(): Promise<MemoryCampaignStore> {
   }
   ready = (async () => {
     const snapshot = readSnapshot();
-    store = new MemoryCampaignStore(undefined, undefined, snapshot);
+    store = buildMemoryStore(snapshot);
     if (!snapshot) {
       await seedPublishedDemoCampaign(store, DEMO);
       persist();

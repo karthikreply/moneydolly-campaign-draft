@@ -12,6 +12,13 @@ import {
   type PresetStore,
   type PresetUpsertInput,
 } from "./sport-presets";
+import {
+  applyRegistryToPresetStore,
+  deserializeRegistry,
+  listCatalog,
+  listSports,
+} from "../admin/presets-and-catalog";
+import type { PublishedTemplatePack } from "../admin/template-pack-types";
 import { STUB_CATALOG } from "./stub-catalog";
 import { isThemeKey, resolveThemePack } from "./theme-packs";
 import { quoteCheckout } from "./checkout";
@@ -46,7 +53,7 @@ function nowIso(): string {
 }
 
 function normalizeBrief(raw: CampaignBrief): CampaignBrief {
-  const themeKey = isThemeKey(raw.themeKey) ? raw.themeKey : "classic_season";
+  const themeKey = raw.themeKey?.trim() ? raw.themeKey : "classic_season";
   return { ...raw, themeKey };
 }
 
@@ -84,6 +91,17 @@ export class CampaignDraftService {
     private readonly presetStore: PresetStore = createPresetStore(),
   ) {
     this.hydratePresetsFromDb();
+    this.hydrateTemplateRegistryFromDb();
+  }
+
+  private hydrateTemplateRegistryFromDb(): void {
+    const rows = this.db
+      .prepare(`SELECT payload_json FROM template_registry ORDER BY updated_at ASC`)
+      .all() as { payload_json: string }[];
+    if (!rows.length) return;
+    const published = rows.map((row) => JSON.parse(row.payload_json) as PublishedTemplatePack);
+    deserializeRegistry({ published });
+    applyRegistryToPresetStore(this.presetStore, "op1");
   }
 
   private hydratePresetsFromDb(): void {
@@ -108,12 +126,18 @@ export class CampaignDraftService {
     }
   }
 
-  getCatalog(): CatalogSku[] {
+  private catalogFor(operatorId: string): CatalogSku[] {
+    return listCatalog(operatorId);
+  }
+
+  getCatalog(operatorId?: string): CatalogSku[] {
+    if (operatorId) return this.catalogFor(operatorId);
     return this.catalog;
   }
 
   listPresets(operatorId: string): SportPreset[] {
-    return listSportPresets(this.presetStore, operatorId);
+    applyRegistryToPresetStore(this.presetStore, operatorId);
+    return listSports(operatorId);
   }
 
   upsertPreset(input: PresetUpsertInput): SportPreset {
@@ -170,11 +194,12 @@ export class CampaignDraftService {
     defaultedFields: string[];
     draft: CampaignDraft | null;
   }> {
+    applyRegistryToPresetStore(this.presetStore, input.operatorId);
     const preset = resolveSportPreset(this.presetStore, input.operatorId, "general");
     const hydrated = hydrateOmniBrief({
       utterance: input.utterance,
       preset,
-      catalog: this.catalog,
+      catalog: this.catalogFor(input.operatorId),
       now: PROTOTYPE_TODAY,
     });
     if (!hydrated.canDraft || !hydrated.brief) {
@@ -216,8 +241,9 @@ export class CampaignDraftService {
     }
 
     const brief = normalizeBrief(input.brief);
-    resolveThemePack(brief.themeKey);
+    resolveThemePack(brief.themeKey, input.operatorId);
 
+    applyRegistryToPresetStore(this.presetStore, input.operatorId);
     const preset = resolveSportPreset(
       this.presetStore,
       input.operatorId,
@@ -226,7 +252,7 @@ export class CampaignDraftService {
     const rules = runDraftRules({
       brief,
       preset,
-      catalog: this.catalog,
+      catalog: this.catalogFor(input.operatorId),
     });
     const guarded = await generateGuardedCopy({
       orgName: brief.orgDisplayName,

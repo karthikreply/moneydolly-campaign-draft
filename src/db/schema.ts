@@ -124,4 +124,12 @@ export function migrate(db: Database.Database): void {
     db.exec(`ALTER TABLE campaigns ADD COLUMN ends_at TEXT`);
   }
   db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS ux_campaigns_slug ON campaigns(slug)`);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS template_registry (
+      id TEXT PRIMARY KEY,
+      payload_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
 }
