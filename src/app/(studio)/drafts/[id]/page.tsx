@@ -1,10 +1,10 @@
-import { DraftReviewLoader } from "@/components/DraftReviewLoader";
+import { DraftReviewFromParams } from "@/components/DraftReviewLoader";
 
-/** Placeholder satisfies static export; real draft ids load client-side after in-app navigation. */
+/** Placeholder satisfies static export. Live drafts open at /drafts/review?id= */
 export function generateStaticParams() {
   return [{ id: "_" }];
 }
 
 export default function DraftReviewPage({ params }: { params: Promise<{ id: string }> }) {
-  return <DraftReviewLoader params={params} />;
+  return <DraftReviewFromParams params={params} />;
 }

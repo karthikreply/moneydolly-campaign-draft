@@ -25,6 +25,7 @@ import { BASE_SPORT_KEYS } from "@/domain/campaign-draft/slot-extractor";
 import { THEME_PACKS } from "@/domain/campaign-draft/theme-packs";
 import type { CampaignDraft, CatalogSku, Participant, PublishedCampaign } from "@/domain/campaign-draft/types";
 import { apiCreateDraft, apiPublishDraft } from "@/lib/campaign-client";
+import { publicCampaignPath } from "@/lib/public-path";
 import { loadRegistrySafely } from "@/lib/registry-sync";
 import { useOperator } from "../OperatorProvider";
 
@@ -175,7 +176,7 @@ export function CampaignAgent({ catalog }: { catalog: CatalogSku[] }) {
       return;
     }
     if (action.type === "open_studio") {
-      router.push(`/drafts/${action.draftId}`);
+      router.push(`/drafts/review?id=${encodeURIComponent(action.draftId)}`);
       return;
     }
     setBusy(true);
@@ -408,18 +409,18 @@ export function CampaignAgent({ catalog }: { catalog: CatalogSku[] }) {
                 <Link className="btn btn-accent btn-sm" href="/student">
                   See it as a Student
                 </Link>
-                <a href={`/c/${published.campaign.slug}?op=${operator.id}`} target="_blank" rel="noreferrer">
+                <Link href={publicCampaignPath(published.campaign.slug, null, operator.id)} target="_blank" rel="noreferrer">
                   Team page /c/{published.campaign.slug}
-                </a>
+                </Link>
                 {published.roster.map((player) => (
-                  <a
+                  <Link
                     key={player.id}
-                    href={`/c/${published.campaign.slug}/${player.slug}?op=${operator.id}`}
+                    href={publicCampaignPath(published.campaign.slug, player.slug, operator.id)}
                     target="_blank"
                     rel="noreferrer"
                   >
                     {player.displayName}
-                  </a>
+                  </Link>
                 ))}
               </div>
             ) : null}

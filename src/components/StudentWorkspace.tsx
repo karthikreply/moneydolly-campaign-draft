@@ -6,6 +6,7 @@ import { formatCents } from "@/domain/campaign-draft/fee-preview";
 import type { CampaignProgress, Participant, PublishedCampaign } from "@/domain/campaign-draft/types";
 import { apiGetPublicCampaignBundle } from "@/lib/campaign-client";
 import { forgetCampaign, lastCampaignSlug, SEED_CAMPAIGN_SLUG } from "@/lib/demo-journey";
+import { publicCampaignPath } from "@/lib/public-path";
 import { loadRegistrySafely } from "@/lib/registry-sync";
 import { useOperator } from "./OperatorProvider";
 import { StudentApp } from "./ParticipantAppPreview";
@@ -97,7 +98,7 @@ export function StudentWorkspace() {
   const { campaign, roster } = team;
   const { participant, progress } = mine;
   const firstName = participant.displayName.split(" ")[0];
-  const payPath = `/c/${campaign.slug}/${participant.slug}?op=${operator.id}`;
+  const payPath = publicCampaignPath(campaign.slug, participant.slug, operator.id);
   const payUrl = typeof window === "undefined" ? payPath : `${window.location.origin}${BASE_PATH}${payPath}`;
   const mineGoal = progress.goalCents || participant.goalCents;
 
@@ -205,7 +206,7 @@ export function StudentWorkspace() {
             </div>
             <p className="muted">
               {roster.length} players.{" "}
-              <Link href={`/c/${campaign.slug}?op=${operator.id}`}>Open the team page</Link>
+              <Link href={publicCampaignPath(campaign.slug, null, operator.id)}>Open the team page</Link>
             </p>
           </section>
 

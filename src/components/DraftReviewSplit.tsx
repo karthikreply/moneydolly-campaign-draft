@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatCents } from "@/domain/campaign-draft/fee-preview";
-import { slugify } from "@/domain/campaign-draft/slug";
+import { campaignSlug } from "@/domain/campaign-draft/slug";
 import { resolveThemePack } from "@/domain/campaign-draft/theme-packs";
 import type {
   CampaignDraft,
@@ -17,12 +18,11 @@ import { ParticipantAppPreview } from "./ParticipantAppPreview";
 import { PublishBar } from "./PublishBar";
 import { SupporterPagePreview } from "./SupporterPagePreview";
 import { apiPublishDraft, apiUpdateDraft } from "@/lib/campaign-client";
+import { publicCampaignPath } from "@/lib/public-path";
 import { useOperator } from "./OperatorProvider";
 
 function previewSlug(orgName: string, sport: string): string {
-  const org = slugify(orgName);
-  const sportKey = slugify(sport);
-  return sportKey && org.includes(sportKey) ? org : slugify(`${orgName} ${sport}`);
+  return campaignSlug(orgName, sport);
 }
 
 export function DraftReviewSplit({
@@ -52,7 +52,7 @@ export function DraftReviewSplit({
   const [copied, setCopied] = useState<string | null>(null);
 
   async function copyLink(path: string) {
-    const url = `${window.location.origin}${path}`;
+    const url = `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}${path}`;
     try {
       await navigator.clipboard.writeText(url);
       setCopied(path);
@@ -106,7 +106,7 @@ export function DraftReviewSplit({
     }
   }
 
-  const teamPath = published ? `/c/${published.slug}?op=${operator.id}` : "";
+  const teamPath = published ? publicCampaignPath(published.slug, null, operator.id) : "";
   const editable = draft.status === "draft";
 
   return (
@@ -143,9 +143,9 @@ export function DraftReviewSplit({
 
           <div className="share-team">
             <span className="share-name">Team page</span>
-            <a href={teamPath} target="_blank" rel="noreferrer">
+            <Link href={teamPath} target="_blank" rel="noreferrer">
               <code>/c/{published.slug}</code>
-            </a>
+            </Link>
             <button className="btn btn-accent" type="button" onClick={() => void copyLink(teamPath)}>
               {copied === teamPath ? "Copied" : "Copy link"}
             </button>
@@ -153,13 +153,13 @@ export function DraftReviewSplit({
 
           <ul aria-label="Player links">
             {roster.map((p) => {
-              const path = `/c/${published.slug}/${p.slug}?op=${operator.id}`;
+              const path = publicCampaignPath(published.slug, p.slug, operator.id);
               return (
                 <li key={p.id}>
                   <span className="share-name">{p.displayName}</span>
-                  <a href={path} target="_blank" rel="noreferrer" aria-label={`Open ${p.displayName}'s page`}>
+                  <Link href={path} target="_blank" rel="noreferrer" aria-label={`Open ${p.displayName}'s page`}>
                     Open
-                  </a>
+                  </Link>
                   <button
                     className="btn btn-secondary btn-sm"
                     type="button"

@@ -114,7 +114,7 @@ export function BriefForm() {
 
     try {
       const data = await apiCreateDraft(body, operator.id);
-      router.push(`/drafts/${data.id}`);
+      router.push(`/drafts/review?id=${encodeURIComponent(data.id)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Draft failed");
       setBusy(false);
@@ -131,7 +131,7 @@ export function BriefForm() {
 
       <OmniBar
         busy={busy}
-        onDrafted={(draftId) => router.push(`/drafts/${draftId}`)}
+        onDrafted={(draftId) => router.push(`/drafts/review?id=${encodeURIComponent(draftId)}`)}
         onPartial={onPartial}
       />
 

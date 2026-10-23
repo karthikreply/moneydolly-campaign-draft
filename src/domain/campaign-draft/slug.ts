@@ -8,6 +8,14 @@ export function slugify(input: string): string {
     .slice(0, 48) || "campaign";
 }
 
+/** Org "Lincoln Volleyball" and sport "volleyball" stay "lincoln-volleyball". */
+export function campaignSlug(orgName: string, sport: string): string {
+  const org = slugify(orgName);
+  const sportKey = slugify(sport);
+  if (!sportKey || org.includes(sportKey)) return org || sportKey || "campaign";
+  return slugify(`${orgName} ${sport}`);
+}
+
 export function uniqueSlug(base: string, taken: (candidate: string) => boolean): string {
   let candidate = base;
   let n = 2;

@@ -1,15 +1,18 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { DraftReviewSplit } from "@/components/DraftReviewSplit";
 import type { CampaignDraft, CatalogSku, Participant, PublishedCampaign } from "@/domain/campaign-draft/types";
 import { apiGetDraftBundle } from "@/lib/campaign-client";
 import { loadRegistrySafely } from "@/lib/registry-sync";
 
-export function DraftReviewLoader({ params }: { params: Promise<{ id: string }> }) {
+export function DraftReviewFromParams({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const router = useRouter();
+  return <DraftReviewLoader id={id} />;
+}
+
+export function DraftReviewLoader({ id }: { id: string }) {
   const [bundle, setBundle] = useState<{
     draft: CampaignDraft;
     catalog: CatalogSku[];
@@ -25,7 +28,7 @@ export function DraftReviewLoader({ params }: { params: Promise<{ id: string }> 
       .then((data) => {
         if (cancelled) return;
         if (!data) {
-          router.replace("/");
+          setError("This draft isn't in this browser. Start again from the brief.");
           return;
         }
         setBundle(data);
@@ -36,12 +39,12 @@ export function DraftReviewLoader({ params }: { params: Promise<{ id: string }> 
     return () => {
       cancelled = true;
     };
-  }, [id, router]);
+  }, [id]);
 
   if (error) {
     return (
       <p className="error" role="alert">
-        {error}
+        {error} <Link href="/drafts/new">Open the brief</Link>
       </p>
     );
   }

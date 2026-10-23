@@ -16,7 +16,7 @@ import {
 import { STUB_CATALOG } from "./stub-catalog";
 import { isThemeKey, resolveThemePack } from "./theme-packs";
 import { quoteCheckout } from "./checkout";
-import { slugify, uniqueSlug } from "./slug";
+import { campaignSlug, slugify, uniqueSlug } from "./slug";
 import type {
   CampaignBrief,
   CampaignDraft,
@@ -304,7 +304,7 @@ export class MemoryCampaignStore {
     const ts = nowIso();
     const name = existing.headline;
     const slug = uniqueSlug(
-      slugify(`${existing.brief.orgDisplayName} ${existing.brief.sport}`),
+      campaignSlug(existing.brief.orgDisplayName, existing.brief.sport),
       (candidate) => this.slugIndex.has(candidate),
     );
 

@@ -24,7 +24,7 @@ import type { PublishedTemplatePack } from "../admin/template-pack-types";
 import { STUB_CATALOG } from "./stub-catalog";
 import { isThemeKey, resolveThemePack } from "./theme-packs";
 import { quoteCheckout } from "./checkout";
-import { slugify, uniqueSlug } from "./slug";
+import { campaignSlug, slugify, uniqueSlug } from "./slug";
 import type {
   CampaignBrief,
   CampaignDraft,
@@ -398,7 +398,7 @@ export class CampaignDraftService {
     const name = existing.headline;
     const slugTaken = this.db.prepare(`SELECT 1 FROM campaigns WHERE slug = ?`);
     const slug = uniqueSlug(
-      slugify(`${existing.brief.orgDisplayName} ${existing.brief.sport}`),
+      campaignSlug(existing.brief.orgDisplayName, existing.brief.sport),
       (candidate) => Boolean(slugTaken.get(candidate)),
     );
 

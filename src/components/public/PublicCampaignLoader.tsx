@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import { PublicCampaignPage } from "@/components/public/PublicCampaignPage";
 import type {
@@ -21,10 +21,19 @@ export function PublicCampaignLoader({
   participantSlug?: string;
 }) {
   const { slug, participant: paramParticipant } = use(params);
+  return <PublicCampaignView slug={slug} participantSlug={participantSlug ?? paramParticipant} />;
+}
+
+export function PublicCampaignView({
+  slug,
+  participantSlug,
+}: {
+  slug: string;
+  participantSlug?: string;
+}) {
   const searchParams = useSearchParams();
   const op = searchParams.get("op") ?? undefined;
-  const resolvedParticipant = participantSlug ?? paramParticipant;
-  const router = useRouter();
+  const resolvedParticipant = participantSlug;
   const operator = findOperator(op ?? "apex");
 
   const [bundle, setBundle] = useState<{
@@ -43,7 +52,7 @@ export function PublicCampaignLoader({
       .then((data) => {
         if (cancelled) return;
         if (!data) {
-          router.replace("/");
+          setError("This campaign isn't in this browser yet.");
           return;
         }
         setBundle(data);
@@ -54,7 +63,7 @@ export function PublicCampaignLoader({
     return () => {
       cancelled = true;
     };
-  }, [slug, resolvedParticipant, router]);
+  }, [slug, resolvedParticipant]);
 
   if (error) {
     return (

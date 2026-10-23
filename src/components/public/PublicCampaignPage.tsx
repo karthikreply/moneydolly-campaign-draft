@@ -13,6 +13,7 @@ import type {
 } from "@/domain/campaign-draft/types";
 import { feeRateToBps, type OperatorBrand } from "@/domain/operators";
 import { apiCheckoutPay, apiCheckoutQuote } from "@/lib/campaign-client";
+import { publicCampaignPath } from "@/lib/public-path";
 
 const DONATION_PRESETS = [2500, 5000, 10000];
 
@@ -47,8 +48,6 @@ export function PublicCampaignPage({
   const products = offers.filter((s) => s.kind === "product");
   const hasDonation = offers.some((s) => s.kind === "donation");
   const feeBps = feeRateToBps(operator.customFeeRate);
-  const opQuery = `?op=${operator.id}`;
-
   const [qty, setQty] = useState<Record<string, number>>({});
   const [donationCents, setDonationCents] = useState(0);
   const [name, setName] = useState("");
@@ -166,7 +165,7 @@ export function PublicCampaignPage({
           {participant ? (
             <p className="public-kicker">
               You&apos;re supporting <strong>{participant.displayName}</strong> ·{" "}
-              <Link href={`/c/${campaign.slug}${opQuery}`}>view team page</Link>
+              <Link href={publicCampaignPath(campaign.slug, null, operator.id)}>view team page</Link>
             </p>
           ) : (
             <p className="public-kicker">{campaign.orgDisplayName} · team page</p>
@@ -205,7 +204,7 @@ export function PublicCampaignPage({
               <h2>Support a specific player</h2>
               <div className="public-roster-grid">
                 {roster.map((p) => (
-                  <Link key={p.id} href={`/c/${campaign.slug}/${p.slug}${opQuery}`} className="public-roster-chip">
+                  <Link key={p.id} href={publicCampaignPath(campaign.slug, p.slug, operator.id)} className="public-roster-chip">
                     {p.displayName}
                   </Link>
                 ))}
