@@ -2,17 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { THEME_LIST, type ThemeKey } from "@/domain/campaign-draft/theme-packs";
+import { listSports, listThemes } from "@/domain/admin/presets-and-catalog";
+import { resolveThemePack } from "@/domain/campaign-draft/theme-packs";
 import type { ExtractedSlots } from "@/domain/campaign-draft/slot-extractor";
 import { OmniBar } from "@/components/OmniBar";
+import { useOperator } from "@/components/OperatorProvider";
 import { apiCreateDraft } from "@/lib/campaign-client";
-
-const SPORTS = [
-  { value: "volleyball", label: "Volleyball" },
-  { value: "basketball", label: "Basketball" },
-  { value: "soccer", label: "Soccer" },
-  { value: "general", label: "General / other" },
-];
+import { hydrateRegistryFromStorage } from "@/lib/registry-storage";
 
 const FOCUS_ID: Record<string, string> = {
   sport: "sport",
@@ -24,6 +20,8 @@ const FOCUS_ID: Record<string, string> = {
 
 export function BriefForm() {
   const router = useRouter();
+  const { operator } = useOperator();
+  const [registryTick, setRegistryTick] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [focusId, setFocusId] = useState<string | null>(null);
@@ -33,11 +31,29 @@ export function BriefForm() {
   const [windowStart, setWindowStart] = useState("2026-03-01");
   const [windowEnd, setWindowEnd] = useState("2026-04-15");
   const [note, setNote] = useState("Keep items under $25");
-  const [themeKey, setThemeKey] = useState<ThemeKey>("classic_season");
+  const [themeKey, setThemeKey] = useState("classic_season");
+
+  useEffect(() => {
+    hydrateRegistryFromStorage();
+    setRegistryTick((n) => n + 1);
+  }, []);
+
+  const sports = useMemo(() => {
+    void registryTick;
+    return listSports(operator.id).map((s) => ({
+      value: s.sportKey,
+      label: s.displayName,
+    }));
+  }, [operator.id, registryTick]);
+
+  const themes = useMemo(() => {
+    void registryTick;
+    return listThemes(operator.id);
+  }, [operator.id, registryTick]);
 
   const selectedTheme = useMemo(
-    () => THEME_LIST.find((t) => t.key === themeKey) ?? THEME_LIST[0],
-    [themeKey],
+    () => resolveThemePack(themeKey, operator.id),
+    [themeKey, operator.id],
   );
 
   useEffect(() => {
@@ -46,7 +62,7 @@ export function BriefForm() {
   }, [focusId]);
 
   function applyExtracted(slots: ExtractedSlots) {
-    if (slots.sport && SPORTS.some((s) => s.value === slots.sport)) {
+    if (slots.sport && sports.some((s) => s.value === slots.sport)) {
       setSport(slots.sport);
     }
     if (slots.orgDisplayName) setOrgDisplayName(slots.orgDisplayName);
@@ -54,8 +70,8 @@ export function BriefForm() {
     if (slots.windowStart) setWindowStart(slots.windowStart);
     if (slots.windowEnd) setWindowEnd(slots.windowEnd);
     if (slots.note) setNote(slots.note);
-    if (slots.themeKey && THEME_LIST.some((t) => t.key === slots.themeKey)) {
-      setThemeKey(slots.themeKey as ThemeKey);
+    if (slots.themeKey && themes.some((t) => t.key === slots.themeKey)) {
+      setThemeKey(slots.themeKey);
     }
   }
 
@@ -125,7 +141,7 @@ export function BriefForm() {
             value={sport}
             onChange={(e) => setSport(e.target.value)}
           >
-            {SPORTS.map((s) => (
+            {sports.map((s) => (
               <option key={s.value} value={s.value}>
                 {s.label}
               </option>
@@ -139,7 +155,7 @@ export function BriefForm() {
       <fieldset id="theme-pack" tabIndex={-1} className="theme-picker">
         <legend>Theme</legend>
         <div className="theme-grid">
-          {THEME_LIST.map((theme) => {
+          {themes.map((theme) => {
             const active = theme.key === themeKey;
             return (
               <button

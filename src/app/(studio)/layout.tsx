@@ -24,6 +24,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
         <nav className="studio-nav" aria-label="Primary">
           <Link href="/agent">Agent</Link>
           <Link href="/drafts/new">Brief</Link>
+          <Link href="/admin/templates">Admin</Link>
         </nav>
         <OperatorSwitcher />
       </header>
