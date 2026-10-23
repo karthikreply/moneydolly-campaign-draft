@@ -5,6 +5,7 @@ import { use, useEffect, useState } from "react";
 import { DraftReviewSplit } from "@/components/DraftReviewSplit";
 import type { CampaignDraft, CatalogSku, Participant, PublishedCampaign } from "@/domain/campaign-draft/types";
 import { apiGetDraftBundle } from "@/lib/campaign-client";
+import { loadRegistrySafely } from "@/lib/registry-sync";
 
 export function DraftReviewLoader({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -19,7 +20,8 @@ export function DraftReviewLoader({ params }: { params: Promise<{ id: string }> 
 
   useEffect(() => {
     let cancelled = false;
-    void apiGetDraftBundle(id)
+    void loadRegistrySafely()
+      .then(() => apiGetDraftBundle(id))
       .then((data) => {
         if (cancelled) return;
         if (!data) {
@@ -45,7 +47,17 @@ export function DraftReviewLoader({ params }: { params: Promise<{ id: string }> 
   }
 
   if (!bundle) {
-    return <p className="muted">Loading draft…</p>;
+    return (
+      <div className="draft-skeleton" aria-busy="true" aria-live="polite">
+        <p className="sr-only">Loading draft</p>
+        <div className="sk-line sk-eyebrow" />
+        <div className="sk-line sk-title" />
+        <div className="sk-split">
+          <div className="sk-panel" />
+          <div className="sk-panel" />
+        </div>
+      </div>
+    );
   }
 
   return (

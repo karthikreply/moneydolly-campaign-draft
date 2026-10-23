@@ -1,7 +1,11 @@
 import { scoreBriefCompleteness } from "../campaign-draft/completeness";
 import { normalizeNumberWords } from "../campaign-draft/number-words";
 import { buildBriefFromSlots } from "../campaign-draft/omni-hydrate";
-import { extractBriefSlots, type ExtractedSlots } from "../campaign-draft/slot-extractor";
+import {
+  extractBriefSlots,
+  extractOrgBefore,
+  type ExtractedSlots,
+} from "../campaign-draft/slot-extractor";
 import { resolveThemePack } from "../campaign-draft/theme-packs";
 import type { CampaignBrief } from "../campaign-draft/types";
 
@@ -45,6 +49,17 @@ export interface AgentPersona {
   operatorName: string;
 }
 
+/**
+ * Sports and themes published from the Admin Template Studio, beyond the built-in ones.
+ * Checked before the built-in aliases so "lacrosse" means the new preset, not "general".
+ */
+export interface AgentVocabulary {
+  sports: Array<{ key: string; label: string }>;
+  themes: Array<{ key: string; name: string; sportKey?: string }>;
+}
+
+export const EMPTY_VOCABULARY: AgentVocabulary = { sports: [], themes: [] };
+
 const ASK_ORDER: SlotName[] = ["sport", "roster", "window", "orgName", "themePack"];
 const SECONDARY: SlotName[] = ["window", "orgName", "themePack"];
 
@@ -73,15 +88,56 @@ export function initialAgentState(): AgentDialogState {
   return { phase: "collecting", slots: {}, skipped: [], turns: 0 };
 }
 
-export function greeting(persona: AgentPersona, greetingText: string): AgentStepResult {
+export function greeting(
+  persona: AgentPersona,
+  greetingText: string,
+  vocabulary: AgentVocabulary = EMPTY_VOCABULARY,
+): AgentStepResult {
+  const newest = vocabulary.sports[vocabulary.sports.length - 1];
   return {
     state: initialAgentState(),
     reply: greetingText,
     suggestions: [
       "Lincoln volleyball, 18 players, March 1 to April 15, spirit week",
-      "Basketball, 12 players",
+      newest ? `Riverside ${newest.label.toLowerCase()}, 20 players, starting March 1` : "Basketball, 12 players",
     ],
   };
+}
+
+function wordPattern(phrase: string): RegExp {
+  const escaped = phrase.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+  return new RegExp(String.raw`\b${escaped}\b`, "i");
+}
+
+function matchVocabularySport(
+  text: string,
+  vocabulary: AgentVocabulary,
+): { key: string; word: string } | undefined {
+  for (const sport of vocabulary.sports) {
+    for (const phrase of [sport.label, sport.key.replace(/_/g, " ")]) {
+      const m = text.match(wordPattern(phrase));
+      if (m) return { key: sport.key, word: m[0] };
+    }
+  }
+  return undefined;
+}
+
+/** Every word of the theme name present, or (when asked) its non-sport words for the chosen sport. */
+function matchVocabularyTheme(
+  text: string,
+  vocabulary: AgentVocabulary,
+  sport: string | undefined,
+  asked: boolean,
+): string | undefined {
+  for (const theme of vocabulary.themes) {
+    const words = theme.name.toLowerCase().split(/\s+/).filter((w) => w.length >= 3);
+    if (words.length && words.every((w) => wordPattern(w).test(text))) return theme.key;
+    if (asked && sport && theme.sportKey === sport) {
+      const own = words.filter((w) => w !== sport);
+      if (own.length && own.every((w) => wordPattern(w).test(text))) return theme.key;
+    }
+  }
+  return undefined;
 }
 
 function hasSlot(slots: ExtractedSlots, slot: SlotName): boolean {
@@ -127,7 +183,12 @@ function contextualize(text: string, asked: SlotName | undefined, slots: Extract
     const n = trimmed.match(/^\D*?(\d{1,3})\D*$/);
     if (n) return `${n[1]} players`;
   }
-  if (asked === "orgName" && slots.sport && !/\b(volleyball|basketball|soccer|general)\b/i.test(trimmed)) {
+  if (
+    asked === "orgName" &&
+    slots.sport &&
+    !/\b(volleyball|basketball|soccer|general)\b/i.test(trimmed) &&
+    !wordPattern(slots.sport).test(trimmed)
+  ) {
     return `${trimmed} ${slots.sport}`;
   }
   return trimmed;
@@ -143,7 +204,11 @@ function aliasTheme(text: string): string | undefined {
   return undefined;
 }
 
-function describe(slots: ExtractedSlots): string {
+function themeName(key: string, vocabulary: AgentVocabulary): string {
+  return vocabulary.themes.find((t) => t.key === key)?.name ?? resolveThemePack(key).name;
+}
+
+function describe(slots: ExtractedSlots, vocabulary: AgentVocabulary): string {
   const parts: string[] = [];
   if (slots.orgDisplayName) parts.push(slots.orgDisplayName);
   if (slots.sport) parts.push(slots.sport);
@@ -155,17 +220,23 @@ function describe(slots: ExtractedSlots): string {
         : `starting ${slots.windowStart}`,
     );
   }
-  if (slots.themeKey) parts.push(`${resolveThemePack(slots.themeKey).name} theme`);
+  if (slots.themeKey) parts.push(`${themeName(slots.themeKey, vocabulary)} theme`);
   return parts.join(", ");
 }
 
-function question(slot: SlotName, slots: ExtractedSlots): { reply: string; suggestions: string[] } {
+function question(
+  slot: SlotName,
+  slots: ExtractedSlots,
+  vocabulary: AgentVocabulary,
+): { reply: string; suggestions: string[] } {
   switch (slot) {
-    case "sport":
+    case "sport": {
+      const added = vocabulary.sports.map((s) => s.label).slice(-2);
       return {
         reply: "Which sport or program is this for?",
-        suggestions: ["Volleyball", "Basketball", "Soccer", "Something else"],
+        suggestions: [...added, "Volleyball", "Basketball", "Soccer", "Something else"].slice(0, 5),
       };
+    }
     case "roster":
       return {
         reply: `How many players are on the ${slots.sport ?? ""} roster?`.replace("  ", " "),
@@ -182,12 +253,24 @@ function question(slot: SlotName, slots: ExtractedSlots): { reply: string; sugge
         reply: "What's the team or organization name supporters will see?",
         suggestions: ["Lincoln High", "Riverside Tigers", "Skip"],
       };
-    case "themePack":
+    case "themePack": {
+      const forSport = vocabulary.themes.filter((t) => t.sportKey && t.sportKey === slots.sport);
+      if (forSport.length) {
+        const names = forSport.map((t) => t.name);
+        return {
+          reply: `Pick a look. There's a new ${names.join(" and ")} look for ${slots.sport}, or Classic season, Spirit week, Community, and the rest. Or say skip for Classic.`,
+          suggestions: [...names.slice(0, 2), "Community", "Spirit week", "Skip"],
+        };
+      }
+      const extra = vocabulary.themes.map((t) => t.name);
+      const builtIn = "Classic season, Spirit week, Spring classic, Championship push, Night lights, or Community";
       return {
-        reply:
-          "Pick a look: Classic season, Spirit week, Spring classic, Championship push, Night lights, or Community. Or say skip for Classic.",
+        reply: extra.length
+          ? `Pick a look: ${extra.join(", ")}, ${builtIn}. Or say skip for Classic.`
+          : `Pick a look: ${builtIn}. Or say skip for Classic.`,
         suggestions: ["Community", "Spirit week", "Night lights", "Skip"],
       };
+    }
   }
 }
 
@@ -198,6 +281,7 @@ export function agentStep(
   userText: string,
   persona: AgentPersona,
   now: Date = NOW_FALLBACK,
+  vocabulary: AgentVocabulary = EMPTY_VOCABULARY,
 ): AgentStepResult {
   const text = userText.trim();
   const turns = state.turns + 1;
@@ -253,13 +337,27 @@ export function agentStep(
   } else {
     const normalized = contextualize(normalizeNumberWords(text), asked, slots);
     const extracted = extractBriefSlots(normalized, now);
+    const added = matchVocabularySport(normalized, vocabulary);
+    if (added && (!extracted.sport || extracted.sport === "general")) {
+      extracted.sport = added.key;
+      const org = extractOrgBefore(normalized, added.word);
+      if (org) extracted.orgDisplayName = org;
+    }
     if (!extracted.sport) {
       const alias = aliasSport(normalized);
       if (alias) extracted.sport = alias;
     }
-    if (!extracted.themeKey && (asked === "themePack" || !asked)) {
+    const addedTheme = matchVocabularyTheme(
+      normalized,
+      vocabulary,
+      extracted.sport ?? slots.sport,
+      asked === "themePack",
+    );
+    if (addedTheme) {
+      extracted.themeKey = addedTheme;
+    } else if (!extracted.themeKey && asked === "themePack") {
       const alias = aliasTheme(normalized);
-      if (alias && asked === "themePack") extracted.themeKey = alias;
+      if (alias) extracted.themeKey = alias;
     }
     slots = mergeSlots(slots, extracted);
   }
@@ -275,20 +373,20 @@ export function agentStep(
     if (!slots.sport || slots.rosterSize == null) {
       // Cannot happen when next is null, but keep the types honest.
       const slot = nextToAsk(working) ?? "sport";
-      const q = question(slot, slots);
+      const q = question(slot, slots, vocabulary);
       return { state: { ...working, asked: slot }, reply: q.reply, suggestions: q.suggestions };
     }
     const brief = buildBriefFromSlots({ ...slots, sport: slots.sport, rosterSize: slots.rosterSize }, now);
     return {
       state: { ...working, phase: "review" },
-      reply: `Got it: ${describe(slots)}. Building the draft with ${persona.operatorName}'s pricing rules now.`,
+      reply: `Got it: ${describe(slots, vocabulary)}. Building the draft with ${persona.operatorName}'s pricing rules now.`,
       action: { type: "create_draft", brief },
       suggestions: [],
     };
   }
 
-  const q = question(next, slots);
-  const ack = describe(slots);
+  const q = question(next, slots, vocabulary);
+  const ack = describe(slots, vocabulary);
   const reply = ack && turns === 1 ? `${ack}. ${q.reply}` : q.reply;
   return { state: { ...working, asked: next }, reply, suggestions: q.suggestions };
 }

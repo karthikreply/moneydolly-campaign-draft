@@ -159,7 +159,7 @@ export function OmniBar({
           disabled={busy || text.trim().length === 0}
           onClick={() => void submit()}
         >
-          {busy ? "Drafting…" : "Draft it"}
+          {busy ? "Drafting…" : "Build draft"}
         </button>
       </div>
       {intent ? (

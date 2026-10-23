@@ -166,6 +166,24 @@ export function mintAaaPalette(hint: ColorHint): CampaignThemePack["colors"] {
   };
 }
 
+/** Accent before contrast repair, so the UI can say whether it had to change. */
+export function baseAccentFor(hint: ColorHint): string {
+  if (hint.neon && hint.family === "green") return "#22c55e";
+  return BASE[hint.family].accent;
+}
+
+/** Lowest text contrast across ink, muted, and accent on every surface. */
+export function minTextContrast(colors: CampaignThemePack["colors"]): number {
+  const surfaces = [colors.background, colors.backgroundAlt, colors.panel];
+  let min = Infinity;
+  for (const surface of surfaces) {
+    for (const fg of [colors.ink, colors.muted, colors.accent]) {
+      min = Math.min(min, contrast(fg, surface));
+    }
+  }
+  return min;
+}
+
 export function paletteMeetsAaa(colors: CampaignThemePack["colors"]): boolean {
   const surfaces = [colors.background, colors.backgroundAlt, colors.panel];
   for (const surface of surfaces) {

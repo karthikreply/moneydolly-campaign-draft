@@ -8,9 +8,11 @@ Static demo: data lives in each visitor’s browser (`localStorage`). A seeded *
 
 | Path | What it is |
 |------|------------|
-| `/` | Director home |
-| `/agent/` | Voice / chat campaign agent |
-| `/drafts/new/` | Brief form |
+| `/` | Persona chooser — start here |
+| `/admin/templates/` | Host: chat with the template agent, ready-made templates, publish |
+| `/agent/` | Campaign Manager: voice / chat campaign agent |
+| `/drafts/new/` | Campaign Manager: brief form |
+| `/student/` | Student: player app, personal goal, pay link |
 | `/c/lincoln-volleyball/?op=apex` | Example team pay page |
 | `/c/lincoln-volleyball/jordan-lee/?op=apex` | Example player pay page |
 

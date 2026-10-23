@@ -28,10 +28,30 @@ export interface PublishedTemplatePack extends DraftTemplatePack {
   publishedAt: string;
 }
 
+export type BuildStepStatus = "found" | "assumed" | "missing";
+
+/** One thing the generator read or decided, shown to the admin as a step in the build. */
+export interface TemplateBuildStep {
+  id: "sport" | "look" | "goals" | "catalog" | "ready";
+  label: string;
+  value: string;
+  detail: string;
+  status: BuildStepStatus;
+}
+
+/** A one-tap edit: `prompt` is the rewritten request to run next. */
+export interface TemplateRefinement {
+  id: string;
+  label: string;
+  prompt: string;
+}
+
 export interface GenerateTemplatePackResult {
   pack: DraftTemplatePack;
   reply: string;
   suggestions: string[];
+  steps: TemplateBuildStep[];
+  refinements: TemplateRefinement[];
   canPublish: boolean;
 }
 

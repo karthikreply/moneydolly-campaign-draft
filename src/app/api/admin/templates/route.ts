@@ -14,18 +14,20 @@ import { DEMO } from "@/lib/demo-tenant";
 function loadRegistryFromDb(): void {
   const db = getDb();
   const rows = db
-    .prepare(`SELECT payload_json FROM template_registry ORDER BY updated_at ASC`)
+    .prepare(`SELECT payload_json FROM template_registry ORDER BY updated_at ASC, rowid ASC`)
     .all() as { payload_json: string }[];
   const published = rows.map((row) => JSON.parse(row.payload_json) as PublishedTemplatePack);
   deserializeRegistry({ published });
 }
 
-function persistPack(published: PublishedTemplatePack): void {
+/** The in-memory registry is the source of truth after a publish: replaced packs drop out, ids stay current. */
+function saveRegistryToDb(): void {
   const db = getDb();
-  db.prepare(
-    `INSERT INTO template_registry (id, payload_json, updated_at) VALUES (?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET payload_json = excluded.payload_json, updated_at = excluded.updated_at`,
-  ).run(published.id, JSON.stringify(published), published.publishedAt);
+  const insert = db.prepare(`INSERT INTO template_registry (id, payload_json, updated_at) VALUES (?, ?, ?)`);
+  db.transaction((packs: PublishedTemplatePack[]) => {
+    db.prepare(`DELETE FROM template_registry`).run();
+    for (const p of packs) insert.run(p.id, JSON.stringify(p), p.publishedAt);
+  })(listPublishedPacks());
 }
 
 const postSchema = z.discriminatedUnion("action", [
@@ -64,7 +66,7 @@ export async function POST(req: Request) {
     const operatorId =
       body.scope === "operator" ? (body.operatorId ?? DEMO.operatorId) : null;
     const published = publishPack(body.pack as never, body.scope, operatorId);
-    persistPack(published);
+    saveRegistryToDb();
     return NextResponse.json(published);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Invalid request";

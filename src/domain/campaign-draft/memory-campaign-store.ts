@@ -1,9 +1,11 @@
 import { generateGuardedCopy } from "@/lib/copyGenerator";
+import { defaultSeasonWindow } from "./season-window";
 import { PROTOTYPE_TODAY } from "@/lib/hydrateIntent";
 import { runDraftRules } from "./draft-rules-engine";
 import { hydrateOmniBrief } from "./omni-hydrate";
 import {
   applyRegistryToPresetStore,
+  findPublishedSport,
   getRegistryCatalog,
 } from "../admin/presets-and-catalog";
 import {
@@ -171,11 +173,13 @@ export class MemoryCampaignStore {
     };
   }
 
+  /** `brandId` is the white-label operator from the switcher; it picks which registry layer applies. */
   async createDraft(input: {
     operatorId: string;
     orgId: string;
     createdBy: string;
     brief: CampaignBrief;
+    brandId?: string;
   }): Promise<CampaignDraft> {
     if (!input.brief.sport?.trim()) throw new Error("sport is required");
     if (!input.brief.orgDisplayName?.trim()) throw new Error("orgDisplayName is required");
@@ -186,9 +190,12 @@ export class MemoryCampaignStore {
     const brief = normalizeBrief(input.brief);
     resolveThemePack(brief.themeKey, input.operatorId);
 
+    const scope = input.brandId ?? input.operatorId;
     applyRegistryToPresetStore(this.presetStore, input.operatorId);
-    const preset = resolveSportPreset(this.presetStore, input.operatorId, brief.sport);
-    const catalog = getRegistryCatalog(input.operatorId);
+    const preset =
+      findPublishedSport(scope, brief.sport) ??
+      resolveSportPreset(this.presetStore, input.operatorId, brief.sport);
+    const catalog = getRegistryCatalog(scope);
     const rules = runDraftRules({
       brief,
       preset,
@@ -453,8 +460,7 @@ export async function seedPublishedDemoCampaign(
     createdBy: tenant.createdBy,
     brief: {
       sport: "volleyball",
-      windowStart: "2026-03-01",
-      windowEnd: "2026-04-15",
+      ...defaultSeasonWindow(PROTOTYPE_TODAY),
       rosterSize: 18,
       note: "Keep items under $25",
       orgDisplayName: "Lincoln Volleyball",

@@ -1,5 +1,7 @@
 const SPORTS = ["volleyball", "basketball", "soccer", "general"] as const;
 
+export const BASE_SPORT_KEYS: readonly string[] = SPORTS;
+
 const THEMES: Array<[RegExp, string]> = [
   [/spirit week/i, "spirit_week"],
   [/spring classic/i, "spring_classic"],
@@ -86,6 +88,17 @@ function yearForMonthDay(month: number, day: number, now: Date): number {
   return candidate < today ? year + 1 : year;
 }
 
+/** "Lincoln volleyball" → "Lincoln": the words right before the sport word. */
+export function extractOrgBefore(text: string, sportWord: string): string | undefined {
+  const org = text.match(
+    new RegExp(String.raw`\b([A-Za-z][A-Za-z'&.\- ]{0,40}?)\s+${sportWord}\b`, "i"),
+  );
+  if (!org) return undefined;
+  const name = org[1].replace(/[,]+$/g, "").trim();
+  const first = name.split(/\s+/)[0]?.toLowerCase();
+  return name && first && !ORG_STOP.has(first) ? name : undefined;
+}
+
 export function extractBriefSlots(text: string, now: Date = new Date()): ExtractedSlots {
   const slots: ExtractedSlots = {};
 
@@ -98,14 +111,8 @@ export function extractBriefSlots(text: string, now: Date = new Date()): Extract
   if (roster) slots.rosterSize = Number(roster[1]);
 
   if (slots.sport) {
-    const org = text.match(
-      new RegExp(String.raw`\b([A-Za-z][A-Za-z'&.\- ]{0,40}?)\s+${slots.sport}\b`, "i"),
-    );
-    if (org) {
-      const name = org[1].replace(/[,]+$/g, "").trim();
-      const first = name.split(/\s+/)[0]?.toLowerCase();
-      if (name && first && !ORG_STOP.has(first)) slots.orgDisplayName = name;
-    }
+    const org = extractOrgBefore(text, slots.sport);
+    if (org) slots.orgDisplayName = org;
   }
 
   for (const [pattern, key] of THEMES) {

@@ -1,20 +1,45 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  listAllCatalog,
+  listPublishedPacks,
+  listSports,
+  listThemes,
+} from "@/domain/admin/presets-and-catalog";
+import {
   agentStep,
   draftReadyReply,
+  EMPTY_VOCABULARY,
   greeting,
   initialAgentState,
   publishedReply,
   type AgentDialogState,
   type AgentStepResult,
+  type AgentVocabulary,
 } from "@/domain/agent/campaign-agent-dialog";
 import { formatCents } from "@/domain/campaign-draft/fee-preview";
+import { BASE_SPORT_KEYS } from "@/domain/campaign-draft/slot-extractor";
+import { THEME_PACKS } from "@/domain/campaign-draft/theme-packs";
 import type { CampaignDraft, CatalogSku, Participant, PublishedCampaign } from "@/domain/campaign-draft/types";
 import { apiCreateDraft, apiPublishDraft } from "@/lib/campaign-client";
+import { loadRegistrySafely } from "@/lib/registry-sync";
 import { useOperator } from "../OperatorProvider";
+
+/** Sports and themes this operator can use beyond the built-ins, oldest published first. */
+function buildVocabulary(operatorId: string): AgentVocabulary {
+  const visibleSports = new Map(listSports(operatorId).map((s) => [s.sportKey, s]));
+  const order = listPublishedPacks().map((p) => p.sportPreset.sportKey);
+  const sports = [...new Set(order)]
+    .filter((key) => visibleSports.has(key) && !BASE_SPORT_KEYS.includes(key))
+    .map((key) => ({ key, label: visibleSports.get(key)!.displayName }));
+  const themes = listThemes(operatorId)
+    .filter((t) => !(t.key in THEME_PACKS))
+    .map((t) => ({ key: t.key, name: t.name, sportKey: t.productTags[0] }));
+  return { sports, themes };
+}
 
 type Message = { id: string; role: "agent" | "user"; text: string };
 
@@ -72,6 +97,8 @@ export function CampaignAgent({ catalog }: { catalog: CatalogSku[] }) {
   const [micNote, setMicNote] = useState<string | null>(null);
   const [draft, setDraft] = useState<CampaignDraft | null>(null);
   const [published, setPublished] = useState<{ campaign: PublishedCampaign; roster: Participant[] } | null>(null);
+  const [vocabulary, setVocabulary] = useState<AgentVocabulary>(EMPTY_VOCABULARY);
+  const [lookupCatalog, setLookupCatalog] = useState<CatalogSku[]>(catalog);
 
   const recognizer = useRef<SpeechRec | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
@@ -105,17 +132,29 @@ export function CampaignAgent({ catalog }: { catalog: CatalogSku[] }) {
     setListening(false);
     setSessionOn(false);
     setMicNote(null);
-    const hello = greeting(persona, operator.assistant.greeting);
-    setMessages([{ id: uid(), role: "agent", text: hello.reply }]);
-    setSuggestions(hello.suggestions);
-    setState(hello.state);
     setDraft(null);
     setPublished(null);
+    let cancelled = false;
+    void loadRegistrySafely().then(() => {
+      if (cancelled) return;
+      const vocab = buildVocabulary(operator.id);
+      setVocabulary(vocab);
+      setLookupCatalog(listAllCatalog());
+      const hello = greeting(persona, operator.assistant.greeting, vocab);
+      setMessages([{ id: uid(), role: "agent", text: hello.reply }]);
+      setSuggestions(hello.suggestions);
+      setState(hello.state);
+    });
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [operator.id]);
 
   useEffect(() => {
-    logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
+    const log = logRef.current;
+    if (!log) return;
+    log.scrollTo({ top: messages.length <= 1 ? 0 : log.scrollHeight });
   }, [messages.length]);
 
   useEffect(() => () => {
@@ -142,7 +181,7 @@ export function CampaignAgent({ catalog }: { catalog: CatalogSku[] }) {
     setBusy(true);
     try {
       if (action.type === "create_draft") {
-        const data = await apiCreateDraft(action.brief);
+        const data = await apiCreateDraft(action.brief, operator.id);
         setDraft(data);
         await pushAgent(draftReadyReply(result.state, data));
       } else if (action.type === "publish") {
@@ -258,7 +297,7 @@ export function CampaignAgent({ catalog }: { catalog: CatalogSku[] }) {
     }
     setInput("");
     setMessages((prev) => [...prev, { id: uid(), role: "user", text }]);
-    const result = agentStep(state, text, persona);
+    const result = agentStep(state, text, persona, undefined, vocabulary);
     const spoken = pushAgent(result);
     await runAction(result);
     await spoken;
@@ -307,7 +346,7 @@ export function CampaignAgent({ catalog }: { catalog: CatalogSku[] }) {
     setMicNote(LISTENING_NOTE);
   }
 
-  const draftSkus = draft ? catalog.filter((sku) => draft.skuIds.includes(sku.id)) : [];
+  const draftSkus = draft ? lookupCatalog.filter((sku) => draft.skuIds.includes(sku.id)) : [];
 
   return (
     <section
@@ -366,6 +405,9 @@ export function CampaignAgent({ catalog }: { catalog: CatalogSku[] }) {
             {published ? (
               <div className="agent-links">
                 <strong>Live links</strong>
+                <Link className="btn btn-accent btn-sm" href="/student">
+                  See it as a Student
+                </Link>
                 <a href={`/c/${published.campaign.slug}?op=${operator.id}`} target="_blank" rel="noreferrer">
                   Team page /c/{published.campaign.slug}
                 </a>

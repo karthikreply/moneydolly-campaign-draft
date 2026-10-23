@@ -29,5 +29,14 @@ export function lookupRegistryTheme(
     const op = operatorThemes.get(operatorId)?.get(key);
     if (op) return op;
   }
-  return platformThemes.get(key) ?? null;
+  const platform = platformThemes.get(key);
+  if (platform) return platform;
+  // Supporter pages render a published campaign without knowing which operator layer minted its theme.
+  if (!operatorId) {
+    for (const layer of operatorThemes.values()) {
+      const found = layer.get(key);
+      if (found) return found;
+    }
+  }
+  return null;
 }

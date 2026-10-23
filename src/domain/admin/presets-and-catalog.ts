@@ -120,6 +120,19 @@ export function publishPack(
 ): PublishedTemplatePack {
   const layer = resolveLayer(scope, operatorId);
   const opId = scope === "operator" ? operatorId : null;
+
+  // One record per pack per layer, so publishing to Platform and then to an operator keeps both.
+  const id = `${pack.id.split("@")[0]}@${opId ?? "platform"}`;
+
+  // Republishing in the same layer replaces that pack, including its SKUs.
+  const replaced = state.published.filter(
+    (p) => p.scope === scope && p.operatorId === opId && (p.id === id || p.theme.key === pack.theme.key),
+  );
+  for (const old of replaced) {
+    for (const sku of old.catalogSkus) layer.catalog.delete(sku.id);
+  }
+  state.published = state.published.filter((p) => !replaced.includes(p));
+
   const theme = cloneTheme(pack.theme);
   layer.themes.set(theme.key, theme);
   if (scope === "operator" && operatorId) registerOperatorTheme(operatorId, theme);
@@ -131,17 +144,15 @@ export function publishPack(
 
   const published: PublishedTemplatePack = {
     ...pack,
+    id,
     theme,
     catalogSkus: pack.catalogSkus.map((s) => ({ ...s, tags: [...s.tags] })),
     scope,
     operatorId: opId,
-    publishedAt: new Date().toISOString(),
+    publishedAt: (pack as Partial<PublishedTemplatePack>).publishedAt ?? new Date().toISOString(),
   };
 
-  const idx = state.published.findIndex((p) => p.id === pack.id);
-  if (idx >= 0) state.published[idx] = published;
-  else state.published.push(published);
-
+  state.published.push(published);
   return published;
 }
 
@@ -258,4 +269,23 @@ export function applyRegistryToPresetStore(
 
 export function getRegistryCatalog(operatorId: string): CatalogSku[] {
   return listCatalog(operatorId);
+}
+
+/** Every SKU in every layer, for looking up published offers by id. Selection uses listCatalog. */
+export function listAllCatalog(): CatalogSku[] {
+  const map = new Map<string, CatalogSku>();
+  for (const sku of state.platform.catalog.values()) map.set(sku.id, sku);
+  for (const layer of state.operators.values()) {
+    for (const sku of layer.catalog.values()) map.set(sku.id, sku);
+  }
+  return [...map.values()];
+}
+
+/** A sport published from the Template Studio: this operator's layer first, then platform. */
+export function findPublishedSport(operatorId: string, sportKey: string): SportPreset | null {
+  const key = sportKey.toLowerCase();
+  const own = state.operators.get(operatorId)?.sports.get(key);
+  if (own) return own;
+  const platform = state.platform.sports.get(key);
+  return platform && platform.id.startsWith("reg_") ? platform : null;
 }

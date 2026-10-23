@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatCents } from "@/domain/campaign-draft/fee-preview";
+import { slugify } from "@/domain/campaign-draft/slug";
 import { resolveThemePack } from "@/domain/campaign-draft/theme-packs";
 import type {
   CampaignDraft,
@@ -16,6 +18,12 @@ import { PublishBar } from "./PublishBar";
 import { SupporterPagePreview } from "./SupporterPagePreview";
 import { apiPublishDraft, apiUpdateDraft } from "@/lib/campaign-client";
 import { useOperator } from "./OperatorProvider";
+
+function previewSlug(orgName: string, sport: string): string {
+  const org = slugify(orgName);
+  const sportKey = slugify(sport);
+  return sportKey && org.includes(sportKey) ? org : slugify(`${orgName} ${sport}`);
+}
 
 export function DraftReviewSplit({
   initialDraft,
@@ -123,9 +131,14 @@ export function DraftReviewSplit({
                 Send the team link to everyone. Each player link credits that player&apos;s goal.
               </p>
             </div>
-            <button className="btn btn-secondary" type="button" onClick={() => router.push("/agent")}>
-              Start another
-            </button>
+            <div className="share-head-actions">
+              <button className="btn btn-accent" type="button" onClick={() => router.push("/student")}>
+                See it as a Student
+              </button>
+              <button className="btn btn-secondary" type="button" onClick={() => router.push("/agent")}>
+                Start another
+              </button>
+            </div>
           </div>
 
           <div className="share-team">
@@ -173,8 +186,9 @@ export function DraftReviewSplit({
 
           <div className="field">
             <label htmlFor="headline">Headline</label>
-            <input
+            <textarea
               id="headline"
+              rows={2}
               value={draft.headline}
               disabled={!editable}
               onChange={(e) => setDraft({ ...draft, headline: e.target.value })}
@@ -237,13 +251,13 @@ export function DraftReviewSplit({
               <li key={s.id}>
                 <span>{s.name}</span>
                 <span className="money">
-                  {s.kind === "product" ? `$${(s.retailCents / 100).toFixed(2)}` : "Any amount"}
+                  {s.kind === "product" ? formatCents(s.retailCents) : "Any amount"}
                 </span>
               </li>
             ))}
           </ul>
 
-          <details className="rules-note">
+          <details className="rules-note" open>
             <summary>How these numbers were set</summary>
             <p>{draft.whyRules}</p>
             <p className="muted">
@@ -293,7 +307,7 @@ export function DraftReviewSplit({
                   <i />
                 </span>
                 <span className="browser-url">
-                  {published ? `/c/${published.slug}` : "/c/your-campaign"}
+                  {`/c/${published?.slug ?? previewSlug(draft.brief.orgDisplayName, draft.brief.sport)}`}
                 </span>
               </div>
               <SupporterPagePreview

@@ -3,12 +3,13 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { listSports, listThemes } from "@/domain/admin/presets-and-catalog";
-import { resolveThemePack } from "@/domain/campaign-draft/theme-packs";
+import { defaultSeasonWindow } from "@/domain/campaign-draft/season-window";
+import { resolveThemePack, THEME_PACKS } from "@/domain/campaign-draft/theme-packs";
 import type { ExtractedSlots } from "@/domain/campaign-draft/slot-extractor";
 import { OmniBar } from "@/components/OmniBar";
 import { useOperator } from "@/components/OperatorProvider";
 import { apiCreateDraft } from "@/lib/campaign-client";
-import { hydrateRegistryFromStorage } from "@/lib/registry-storage";
+import { loadRegistrySafely } from "@/lib/registry-sync";
 
 const FOCUS_ID: Record<string, string> = {
   sport: "sport",
@@ -28,14 +29,30 @@ export function BriefForm() {
   const [sport, setSport] = useState("volleyball");
   const [orgDisplayName, setOrgDisplayName] = useState("Lincoln Volleyball");
   const [rosterSize, setRosterSize] = useState("18");
-  const [windowStart, setWindowStart] = useState("2026-03-01");
-  const [windowEnd, setWindowEnd] = useState("2026-04-15");
+  const season = defaultSeasonWindow();
+  const [windowStart, setWindowStart] = useState(season.windowStart);
+  const [windowEnd, setWindowEnd] = useState(season.windowEnd);
   const [note, setNote] = useState("Keep items under $25");
   const [themeKey, setThemeKey] = useState("classic_season");
 
   useEffect(() => {
-    hydrateRegistryFromStorage();
-    setRegistryTick((n) => n + 1);
+    let cancelled = false;
+    void loadRegistrySafely().then(() => {
+      if (cancelled) return;
+      setRegistryTick((n) => n + 1);
+      const params = new URLSearchParams(window.location.search);
+      const requested = listSports(operator.id).find((s) => s.sportKey === params.get("sport"));
+      if (requested) {
+        setSport(requested.sportKey);
+        setOrgDisplayName(`Lincoln ${requested.displayName}`);
+      }
+      const theme = params.get("theme");
+      if (theme && listThemes(operator.id).some((t) => t.key === theme)) setThemeKey(theme);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const sports = useMemo(() => {
@@ -96,7 +113,7 @@ export function BriefForm() {
     };
 
     try {
-      const data = await apiCreateDraft(body);
+      const data = await apiCreateDraft(body, operator.id);
       router.push(`/drafts/${data.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Draft failed");
@@ -175,7 +192,13 @@ export function BriefForm() {
                 <span className="theme-check" aria-hidden="true">
                   {active ? "✓" : ""}
                 </span>
-                <span className="theme-tags">{theme.productTags.slice(0, 2).join(" · ")}</span>
+                <span className="theme-tags">
+                  {theme.key in THEME_PACKS ? (
+                    theme.productTags.slice(0, 2).join(" · ")
+                  ) : (
+                    <span className="theme-origin">New from Host</span>
+                  )}
+                </span>
                 {active ? <span className="sr-only">Selected</span> : null}
               </button>
             );

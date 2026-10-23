@@ -19,11 +19,14 @@ Plan: `docs/superpowers/plans/2026-10-22-campaign-draft-agent.md`.
 
 See **[SHARE.md](./SHARE.md)** for paths, localStorage behavior, and Render/tunnel options.
 
-| | |
-|---|---|
-| **Talk to the agent** | `/agent/` |
-| **Fill a brief** | `/drafts/new/` |
-| **Example pay page** | `/c/lincoln-volleyball/?op=apex` |
+The demo opens on a persona chooser. Switch persona any time from the top bar.
+
+| Persona | Surface | Path |
+|---|---|---|
+| **Host** | Admin: chat with the template agent, start from ready-made templates, publish | `/admin/templates/` |
+| **Campaign Manager** | Agent (voice / chat) or the Brief form | `/agent/`, `/drafts/new/` |
+| **Student** | Player app, personal goal, pay link | `/student/` |
+| Supporter | Example pay page | `/c/lincoln-volleyball/?op=apex` |
 
 ## Run locally
 

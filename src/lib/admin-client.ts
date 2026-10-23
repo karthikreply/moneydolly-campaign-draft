@@ -7,6 +7,7 @@ import {
 import type { DraftTemplatePack, PublishScope, PublishedTemplatePack } from "@/domain/admin/template-pack-types";
 import { isStaticDemo } from "@/lib/is-static-demo";
 import { hydrateRegistryFromStorage, writeLocalRegistry } from "@/lib/registry-storage";
+import { invalidateRegistry } from "@/lib/registry-sync";
 
 export { hydrateRegistryFromStorage } from "@/lib/registry-storage";
 
@@ -56,6 +57,7 @@ export async function adminPublish(
   });
   if (!res.ok) throw new Error("Publish failed");
   const body = (await res.json()) as PublishedTemplatePack;
+  invalidateRegistry();
   await adminListPacks();
   return body;
 }

@@ -11,6 +11,7 @@ import type {
 } from "@/domain/campaign-draft/types";
 import { findOperator } from "@/domain/operators";
 import { apiGetPublicCampaignBundle } from "@/lib/campaign-client";
+import { loadRegistrySafely } from "@/lib/registry-sync";
 
 export function PublicCampaignLoader({
   params,
@@ -37,7 +38,8 @@ export function PublicCampaignLoader({
 
   useEffect(() => {
     let cancelled = false;
-    void apiGetPublicCampaignBundle(slug, resolvedParticipant ?? null)
+    void loadRegistrySafely()
+      .then(() => apiGetPublicCampaignBundle(slug, resolvedParticipant ?? null))
       .then((data) => {
         if (cancelled) return;
         if (!data) {

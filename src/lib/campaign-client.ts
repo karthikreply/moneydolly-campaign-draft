@@ -1,14 +1,16 @@
 import type { CampaignBrief, CampaignDraft } from "@/domain/campaign-draft/types";
 import type { CheckoutInput } from "@/domain/campaign-draft/types";
 import * as demo from "@/lib/demo-client";
+import { rememberCampaign } from "@/lib/demo-journey";
 import { isStaticDemo } from "@/lib/is-static-demo";
 
-export async function apiCreateDraft(brief: CampaignBrief): Promise<CampaignDraft> {
-  if (isStaticDemo) return demo.createDraft(brief);
+/** `brandId` is the operator from the top-bar switcher, so its Template Studio packs apply. */
+export async function apiCreateDraft(brief: CampaignBrief, brandId?: string): Promise<CampaignDraft> {
+  if (isStaticDemo) return demo.createDraft(brief, brandId);
   const res = await fetch("/api/drafts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(brief),
+    body: JSON.stringify({ ...brief, brandId }),
   });
   const data = (await res.json()) as CampaignDraft & { error?: string };
   if (!res.ok) throw new Error(data.error ?? "Draft failed");
@@ -50,7 +52,12 @@ export async function apiUpdateDraft(
 }
 
 export async function apiPublishDraft(id: string) {
-  if (isStaticDemo) return demo.publishDraft(id);
+  const data = isStaticDemo ? await demo.publishDraft(id) : await publishOnServer(id);
+  if (data?.campaign?.slug) rememberCampaign(data.campaign.slug);
+  return data;
+}
+
+async function publishOnServer(id: string) {
   const res = await fetch(`/api/drafts/${id}/publish`, { method: "POST" });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error ?? "Publish failed");

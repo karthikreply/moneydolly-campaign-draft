@@ -15,6 +15,8 @@ import {
 import {
   applyRegistryToPresetStore,
   deserializeRegistry,
+  findPublishedSport,
+  listAllCatalog,
   listCatalog,
   listSports,
 } from "../admin/presets-and-catalog";
@@ -130,9 +132,13 @@ export class CampaignDraftService {
     return listCatalog(operatorId);
   }
 
+  /** Lookup catalog for published offers: built-in SKUs plus every studio-published SKU. */
   getCatalog(operatorId?: string): CatalogSku[] {
+    this.hydrateTemplateRegistryFromDb();
     if (operatorId) return this.catalogFor(operatorId);
-    return this.catalog;
+    const byId = new Map(this.catalog.map((sku) => [sku.id, sku]));
+    for (const sku of listAllCatalog()) if (!byId.has(sku.id)) byId.set(sku.id, sku);
+    return [...byId.values()];
   }
 
   listPresets(operatorId: string): SportPreset[] {
@@ -228,11 +234,13 @@ export class CampaignDraftService {
     };
   }
 
+  /** `brandId` is the white-label operator from the switcher; it picks which registry layer applies. */
   async createDraft(input: {
     operatorId: string;
     orgId: string;
     createdBy: string;
     brief: CampaignBrief;
+    brandId?: string;
   }): Promise<CampaignDraft> {
     if (!input.brief.sport?.trim()) throw new Error("sport is required");
     if (!input.brief.orgDisplayName?.trim()) throw new Error("orgDisplayName is required");
@@ -241,18 +249,18 @@ export class CampaignDraftService {
     }
 
     const brief = normalizeBrief(input.brief);
-    resolveThemePack(brief.themeKey, input.operatorId);
+    this.hydrateTemplateRegistryFromDb();
+    const scope = input.brandId ?? input.operatorId;
+    resolveThemePack(brief.themeKey, scope);
 
     applyRegistryToPresetStore(this.presetStore, input.operatorId);
-    const preset = resolveSportPreset(
-      this.presetStore,
-      input.operatorId,
-      brief.sport,
-    );
+    const preset =
+      findPublishedSport(scope, brief.sport) ??
+      resolveSportPreset(this.presetStore, input.operatorId, brief.sport);
     const rules = runDraftRules({
       brief,
       preset,
-      catalog: this.catalogFor(input.operatorId),
+      catalog: this.catalogFor(scope),
     });
     const guarded = await generateGuardedCopy({
       orgName: brief.orgDisplayName,
@@ -549,7 +557,7 @@ export class CampaignDraftService {
     const campaign = this.getCampaignBySlug(input.campaignSlug);
     if (!campaign) throw new Error("Campaign not found");
     return quoteCheckout(
-      this.catalog,
+      this.getCatalog(),
       campaign.offerProductIds,
       input.lines,
       input.donationCents,

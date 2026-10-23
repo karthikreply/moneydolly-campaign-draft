@@ -36,8 +36,9 @@ export function buildFeePreviewSamples(
 }
 
 export function formatCents(cents: number): string {
+  const whole = cents % 100 === 0;
   return `$${(cents / 100).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
+    minimumFractionDigits: whole ? 0 : 2,
     maximumFractionDigits: 2,
   })}`;
 }

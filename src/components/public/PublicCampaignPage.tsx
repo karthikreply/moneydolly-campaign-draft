@@ -16,6 +16,14 @@ import { apiCheckoutPay, apiCheckoutQuote } from "@/lib/campaign-client";
 
 const DONATION_PRESETS = [2500, 5000, 10000];
 
+function daysUntil(iso: string): number | null {
+  const end = Date.parse(`${iso}T00:00:00Z`);
+  if (!Number.isFinite(end)) return null;
+  const today = new Date();
+  const start = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+  return Math.round((end - start) / 86_400_000);
+}
+
 export function PublicCampaignPage({
   campaign,
   participant,
@@ -114,14 +122,7 @@ export function PublicCampaignPage({
   }
 
   const pct = progress.goalCents > 0 ? Math.min(100, Math.round((progress.raisedCents / progress.goalCents) * 100)) : 0;
-  const endsLabel = campaign.endsAt
-    ? new Date(`${campaign.endsAt}T00:00:00Z`).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        timeZone: "UTC",
-      })
-    : null;
+  const daysLeft = campaign.endsAt ? daysUntil(campaign.endsAt) : null;
 
   return (
     <div
@@ -154,7 +155,10 @@ export function PublicCampaignPage({
           <img src={operator.logoUrl} alt="" width={28} height={28} />
           <span>{operator.operatorName}</span>
         </span>
-        <span className="public-secure">Secure checkout · mock payments in this prototype</span>
+        <span className="public-secure">
+          Secure checkout
+          <span className="public-secure-more"> · mock payments in this prototype</span>
+        </span>
       </header>
 
       <main id="support-main" className="public-grid">
@@ -184,10 +188,16 @@ export function PublicCampaignPage({
             <div className="public-progress-meta">
               <strong>{formatCents(progress.raisedCents)}</strong> raised of{" "}
               <span className="money">{formatCents(progress.goalCents)}</span>
-              {participant ? " personal goal" : " team goal"} · {progress.orderCount} supporter
-              {progress.orderCount === 1 ? "" : "s"}
-              {endsLabel ? ` · ends ${endsLabel}` : ""}
+              {participant ? " personal goal" : " team goal"}
             </div>
+            <p className="public-proof">
+              {pct}% there
+              {daysLeft == null ? "" : daysLeft <= 0 ? " · ends today" : ` · ${daysLeft} ${daysLeft === 1 ? "day" : "days"} left`}
+              {" · "}
+              {progress.orderCount === 0
+                ? "Be the first supporter"
+                : `${progress.orderCount} ${progress.orderCount === 1 ? "supporter has" : "supporters have"} given`}
+            </p>
           </div>
 
           {!participant && roster.length > 0 ? (
@@ -361,7 +371,7 @@ export function PublicCampaignPage({
                 </p>
               ) : null}
               <button type="button" className="public-pay" disabled={busy || cartEmpty || !quote} onClick={() => void pay()}>
-                {busy ? "Processing…" : quote ? `Pay ${formatCents(quote.totalCents)}` : "Pay"}
+                {busy ? "Processing…" : quote ? `Pay ${formatCents(quote.totalCents)}` : "Add an item or amount to pay"}
               </button>
               <p className="public-finePrint">
                 Prototype: this records a mock order and charges nothing.

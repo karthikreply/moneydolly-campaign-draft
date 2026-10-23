@@ -16,15 +16,40 @@ const CONTACTS = [
 
 const SLOT_COUNT = 5;
 
+interface StudentAppProps {
+  studentName: string;
+  orgDisplayName: string;
+  personalGoalCents: number;
+  raisedCents: number;
+  caption?: string;
+}
+
+/** Draft review shows sample progress; the Student view passes real numbers. */
 export function ParticipantAppPreview({ draft }: { draft: CampaignDraft }) {
+  const roster = Math.max(draft.brief.rosterSize, 1);
+  const personalGoal = Math.round(draft.goalCents / roster);
+  return (
+    <StudentApp
+      studentName="Jordan Lee"
+      orgDisplayName={draft.brief.orgDisplayName}
+      personalGoalCents={personalGoal}
+      raisedCents={Math.round(personalGoal * 0.36)}
+    />
+  );
+}
+
+export function StudentApp({
+  studentName,
+  orgDisplayName,
+  personalGoalCents: personalGoal,
+  raisedCents: raised,
+  caption = "Participant app · minor · not a live device",
+}: StudentAppProps) {
   const { operator } = useOperator();
   const [consent, setConsent] = useState<"locked" | "link-sent" | "approved">("locked");
   const [openSlot, setOpenSlot] = useState<number | null>(null);
   const [slots, setSlots] = useState<Array<string | null>>(Array(SLOT_COUNT).fill(null));
-
-  const roster = Math.max(draft.brief.rosterSize, 1);
-  const personalGoal = Math.round(draft.goalCents / roster);
-  const raised = Math.round(personalGoal * 0.36);
+  const firstName = studentName.split(" ")[0];
   const progress = personalGoal > 0 ? Math.min(100, Math.round((raised / personalGoal) * 100)) : 0;
   const shared = slots.filter(Boolean).length;
   const unlocked = consent === "approved";
@@ -38,7 +63,7 @@ export function ParticipantAppPreview({ draft }: { draft: CampaignDraft }) {
 
   return (
     <section className="phone-wrap" aria-label="Participant mobile app preview">
-      <p className="muted phone-caption">Participant app · minor · not a live device</p>
+      <p className="muted phone-caption">{caption}</p>
       <div className="phone" style={{ borderColor: "var(--operator-primary)" }}>
         <div className="phone-bar">
           <span
@@ -49,8 +74,8 @@ export function ParticipantAppPreview({ draft }: { draft: CampaignDraft }) {
           />
           <strong>{operator.operatorName}</strong>
         </div>
-        <h3>Jordan Lee</h3>
-        <p className="phone-sub">{draft.brief.orgDisplayName}</p>
+        <h3>{studentName}</h3>
+        <p className="phone-sub">{orgDisplayName}</p>
         <p className="phone-metric money">
           Personal goal {formatCents(raised)} of {formatCents(personalGoal)}
         </p>
@@ -80,7 +105,7 @@ export function ParticipantAppPreview({ draft }: { draft: CampaignDraft }) {
                 </button>
               ) : (
                 <div className="consent-sheet">
-                  <p>Approval link ready for Jordan’s guardian.</p>
+                  <p>Approval link ready for {firstName}’s guardian.</p>
                   <button type="button" className="consent-approve" onClick={() => setConsent("approved")}>
                     One-tap approve
                   </button>

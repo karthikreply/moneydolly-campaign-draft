@@ -1,7 +1,4 @@
-import {
-  applyRegistryToPresetStore,
-  getRegistryCatalog,
-} from "@/domain/admin/presets-and-catalog";
+import { applyRegistryToPresetStore, listAllCatalog } from "@/domain/admin/presets-and-catalog";
 import {
   MemoryCampaignStore,
   seedPublishedDemoCampaign,
@@ -28,8 +25,7 @@ function buildMemoryStore(snapshot?: MemoryStoreSnapshot): MemoryCampaignStore {
   hydrateRegistryFromStorage();
   const presetStore = createPresetStore();
   applyRegistryToPresetStore(presetStore, DEMO.operatorId);
-  const catalog = getRegistryCatalog(DEMO.operatorId);
-  return new MemoryCampaignStore(catalog, presetStore, snapshot);
+  return new MemoryCampaignStore(listAllCatalog(), presetStore, snapshot);
 }
 
 function readSnapshot(): MemoryStoreSnapshot | undefined {
@@ -69,13 +65,14 @@ export async function getCatalog(): Promise<CatalogSku[]> {
   return (await getReadyStore()).getCatalog();
 }
 
-export async function createDraft(brief: CampaignBrief): Promise<CampaignDraft> {
+export async function createDraft(brief: CampaignBrief, brandId?: string): Promise<CampaignDraft> {
   const s = await getReadyStore();
   const draft = await s.createDraft({
     operatorId: DEMO.operatorId,
     orgId: DEMO.orgId,
     createdBy: DEMO.createdBy,
     brief,
+    brandId,
   });
   persist();
   return draft;

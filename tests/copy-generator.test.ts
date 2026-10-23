@@ -50,7 +50,7 @@ describe("generateGuardedCopy", () => {
     expect(copy.usedFallback).toBe(true);
     expect(copy.guardrailReason).toBe("forbidden_phrase");
     expect(copy.headline).toBe("Support Lincoln Volleyball Fundraiser");
-    expect(copy.supportingLine).toBe("Help us reach our $2,700 goal in 14 days!");
+    expect(copy.supportingLine).toBe("Help us reach our $2,700 goal by March 14, 2027.");
     expect(copy.whyDraft).toBe(`Fallback Copy Active: ${brief.whyRules}`);
     expect(FORBIDDEN_COPY.test(`${copy.headline} ${copy.supportingLine} ${copy.whyDraft}`)).toBe(
       false,
@@ -79,6 +79,16 @@ describe("generateGuardedCopy", () => {
     const copy = await generateGuardedCopy(brief, model, 30);
     expect(copy.usedFallback).toBe(true);
     expect(copy.guardrailReason).toBe("timeout");
+  });
+
+  it("names the sport once and dates the goal when the org already includes it", async () => {
+    const copy = await generateGuardedCopy({
+      ...brief,
+      orgName: "Lincoln Volleyball",
+    });
+    expect(copy.headline).toBe("Support Lincoln Volleyball Fundraiser");
+    expect(copy.supportingLine).toBe("Help us reach our $2,700 goal by March 14, 2027.");
+    expect(copy.whyDraft).toBe("Every gift helps Lincoln Volleyball cover the season.");
   });
 
   it("formats Program without a possessive", async () => {

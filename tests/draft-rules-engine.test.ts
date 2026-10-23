@@ -58,6 +58,42 @@ describe("runDraftRules", () => {
     });
   });
 
+  it("keeps a volleyball campaign off other sports' merch", () => {
+    const store = createPresetStore();
+    const preset = resolveSportPreset(store, "op1", "volleyball");
+    const foreign: CatalogSku[] = [
+      {
+        id: "sku_hockey_sticker",
+        name: "Hockey Sticker Pack",
+        retailCents: 800,
+        groupCreditCents: 300,
+        shipHandlingCents: 299,
+        tags: ["hockey", "merch"],
+        kind: "product",
+      },
+      {
+        id: "sku_lax_sticker",
+        name: "Lacrosse Sticker Pack",
+        retailCents: 800,
+        groupCreditCents: 300,
+        shipHandlingCents: 299,
+        tags: ["lacrosse", "merch", "gear"],
+        kind: "product",
+      },
+    ];
+    const catalog = [...STUB_CATALOG, ...foreign];
+    const result = runDraftRules({
+      brief: { ...briefBase, note: "Keep items under $25" },
+      preset,
+      catalog,
+    });
+    const picked = result.skuIds.map((id) => catalog.find((sku) => sku.id === id)!);
+    const names = picked.map((sku) => sku.name);
+    expect(names.join(" ")).not.toMatch(/hockey|lacrosse|basketball|soccer/i);
+    expect(names).toContain("Volleyball Spirit Tee");
+    expect(names).toContain("Team Lanyard");
+  });
+
   it("empty catalog yields donation only", () => {
     const store = createPresetStore();
     const preset = resolveSportPreset(store, "op1", "volleyball");

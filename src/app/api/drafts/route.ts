@@ -9,29 +9,26 @@ const briefSchema = z.object({
   rosterSize: z.number().int().min(1),
   note: z.string().default(""),
   orgDisplayName: z.string().min(1),
+  // Built-in keys or any key published from the Template Studio; unknown keys fall back to Classic.
   themeKey: z
-    .enum([
-      "classic_season",
-      "spirit_week",
-      "spring_classic",
-      "championship_push",
-      "night_lights",
-      "community",
-    ])
+    .string()
+    .regex(/^[a-z0-9_]+$/)
     .default("classic_season"),
   defaultedFields: z.array(z.string()).optional(),
+  brandId: z.string().min(1).optional(),
 });
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const brief = briefSchema.parse(body);
+    const { brandId, ...brief } = briefSchema.parse(body);
     const svc = getCampaignDraftService();
     const draft = await svc.createDraft({
       operatorId: DEMO.operatorId,
       orgId: DEMO.orgId,
       createdBy: DEMO.createdBy,
       brief,
+      brandId,
     });
     return NextResponse.json(draft, { status: 201 });
   } catch (err) {

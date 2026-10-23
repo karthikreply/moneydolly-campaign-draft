@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFeePreviewSamples } from "../src/domain/campaign-draft/fee-preview";
+import { buildFeePreviewSamples, formatCents } from "../src/domain/campaign-draft/fee-preview";
 import { STUB_CATALOG } from "../src/domain/campaign-draft/stub-catalog";
 
 describe("buildFeePreviewSamples", () => {
@@ -18,5 +18,13 @@ describe("buildFeePreviewSamples", () => {
     const product = samples.find((s) => s.kind === "product")!;
     expect(product.towardGoalCents).toBe(800);
     expect(product.notTowardGoalNote).toMatch(/does not count toward the goal/i);
+  });
+});
+
+describe("formatCents", () => {
+  it("shows whole dollars without cents and keeps real cents", () => {
+    expect(formatCents(270000)).toBe("$2,700");
+    expect(formatCents(14850)).toBe("$148.50");
+    expect(formatCents(399)).toBe("$3.99");
   });
 });

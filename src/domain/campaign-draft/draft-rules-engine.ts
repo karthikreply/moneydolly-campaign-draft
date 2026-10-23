@@ -11,6 +11,38 @@ import type {
 
 const MAX_PRODUCT_SKUS = 5;
 
+/** Tags that describe a look or a product kind, never a program. */
+const CATEGORY_TAGS = new Set([
+  "donation",
+  "merch",
+  "gear",
+  "apparel",
+  "spirit",
+  "night",
+  "championship",
+  "spring",
+  "fall",
+  "winter",
+  "summer",
+  "community",
+  "classic",
+  "neon",
+  "generic",
+]);
+
+/** A product branded for a program carries that program as a tag. Neutral merch does not. */
+function sportClaims(sku: CatalogSku): string[] {
+  return sku.tags.filter((tag) => !CATEGORY_TAGS.has(tag));
+}
+
+function matchesProgram(sku: CatalogSku, sportTags: string[]): boolean {
+  const wanted = sportTags.filter((tag) => tag !== "generic");
+  const claims = sportClaims(sku);
+  if (wanted.length === 0) return claims.length === 0;
+  if (claims.length === 0) return true;
+  return claims.some((tag) => wanted.includes(tag));
+}
+
 function applyNoteFilter(
   products: CatalogSku[],
   filter: NoteFilterResult,
@@ -31,7 +63,7 @@ function scoreSku(
 ): number {
   let score = 0;
   for (const t of sku.tags) {
-    if (sportTags.includes(t)) score += 2;
+    if (sportTags.includes(t)) score += 10;
     if (themeTags.includes(t)) score += 3;
   }
   return score;
@@ -46,7 +78,9 @@ function pickSkus(
   const donation = catalog.find((s) => s.kind === "donation");
   let products = catalog.filter((s) => s.kind === "product");
 
-  products = applyNoteFilter(products, filter);
+  products = applyNoteFilter(products, filter).filter((sku) =>
+    matchesProgram(sku, preset.defaultProductTags),
+  );
 
   const ranked = [...products].sort((a, b) => {
     const diff =

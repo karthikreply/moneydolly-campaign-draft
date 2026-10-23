@@ -97,6 +97,37 @@ describe("campaign agent dialog", () => {
     expect(publish.state.phase).toBe("published");
   });
 
+  describe("with a sport published from the Template Studio", () => {
+    const vocabulary = {
+      sports: [{ key: "lacrosse", label: "Lacrosse" }],
+      themes: [{ key: "spring_lacrosse", name: "Spring Lacrosse", sportKey: "lacrosse" }],
+    };
+    const step = (s: AgentDialogState, line: string) => agentStep(s, line, persona, NOW, vocabulary);
+
+    it("treats lacrosse as the new preset instead of general, and reads the org before it", () => {
+      const first = step(initialAgentState(), "Riverside lacrosse, 22 players, starting March 1");
+      expect(first.state.slots.sport).toBe("lacrosse");
+      expect(first.state.slots.orgDisplayName).toBe("Riverside");
+      expect(first.state.asked).toBe("themePack");
+      expect(first.suggestions[0]).toBe("Spring Lacrosse");
+
+      const done = step(first.state, "spring");
+      expect(done.action?.type).toBe("create_draft");
+      if (done.action?.type !== "create_draft") throw new Error("no draft");
+      expect(done.action.brief).toMatchObject({ sport: "lacrosse", themeKey: "spring_lacrosse" });
+      expect(done.reply).toMatch(/Spring Lacrosse theme/);
+    });
+
+    it("offers the new sport when asking which sport", () => {
+      const asked = step(initialAgentState(), "hello");
+      expect(asked.suggestions).toContain("Lacrosse");
+    });
+
+    it("still maps lacrosse to general when nothing was published", () => {
+      expect(run(["lacrosse"]).state.slots.sport).toBe("general");
+    });
+  });
+
   it("start over resets from any phase", () => {
     const { state } = run(["volleyball", "15"]);
     const reset = agentStep(state, "start over", persona, NOW);
